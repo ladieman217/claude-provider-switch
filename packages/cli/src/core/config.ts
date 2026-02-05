@@ -7,6 +7,9 @@ import { resolvePaths } from "./paths";
 const CONFIG_VERSION = 1 as const;
 
 export const normalizeProviderName = (name: string) => name.trim().toLowerCase();
+const isAnthropicName = (name: string) => normalizeProviderName(name) === "anthropic";
+const isAnthropicProvider = (provider: ProviderConfig) =>
+  isAnthropicName(provider.name);
 
 export const createDefaultConfig = (): ConfigFile => ({
   version: CONFIG_VERSION,
@@ -110,6 +113,9 @@ export const assertValidProviderInput = (provider: ProviderConfig) => {
 };
 
 export const assertProviderHasAuthToken = (provider: ProviderConfig) => {
+  if (isAnthropicProvider(provider)) {
+    return;
+  }
   if (!provider.baseUrl || !provider.baseUrl.trim()) {
     throw new Error("Base URL is required to apply provider.");
   }
@@ -155,6 +161,9 @@ export const updateProvider = (
   if (!target) {
     throw new Error(`Provider '${normalizedName}' not found.`);
   }
+  if (isAnthropicName(normalizedName) && target.preset) {
+    throw new Error("Anthropic preset is read-only.");
+  }
 
   const updatedProvider = {
     ...target,
@@ -174,6 +183,10 @@ export const updateProvider = (
 
 export const removeProvider = (config: ConfigFile, name: string): ConfigFile => {
   const normalizedName = normalizeProviderName(name);
+  const target = findProvider(config, normalizedName);
+  if (target && isAnthropicName(normalizedName) && target.preset) {
+    throw new Error("Anthropic preset is read-only.");
+  }
   const providers = config.providers.filter(
     (provider) => provider.name !== normalizedName
   );

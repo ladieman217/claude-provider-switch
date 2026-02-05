@@ -1,45 +1,129 @@
 # Claude Provider Switcher
 
-A TypeScript CLI + local web UI for switching Claude Code providers by updating `~/.claude/settings.json` env keys.
+[![npm version](https://img.shields.io/npm/v/claude-provider-switcher)](https://www.npmjs.com/package/claude-provider-switcher)
+[![license](https://img.shields.io/npm/l/claude-provider-switcher)](LICENSE)
 
-## Features
-- CLI commands: `list`, `current`, `set`, `add`, `remove`, `serve`
-- Local web UI built with React + Tailwind + shadcn-style components
-- Config persisted in `~/.config/claude-provider-switcher/config.json`
-- Applies `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL`
-- Automatic settings backup (latest 3)
-- Applying a provider requires `authToken` to be set
+一键切换 Claude Code 的 API Provider。支持 Anthropic 官方 API 或任何兼容 Anthropic API 格式的第三方服务（如智谱、火山方舟等）。
 
-## Quick Start
+<p align="center">
+  <img src="docs/screenshot-ui.png" alt="Web UI 截图" width="720">
+</p>
+
+## 为什么需要这个工具？
+
+- **多 Provider 管理** — 同时配置多个 API 提供商，随时切换
+- **避免手动改配置** — 自动管理 `~/.claude/settings.json`，无需手动编辑
+- **安全备份** — 每次修改前自动备份，可随时恢复
+- **可视化界面** — 除了 CLI，还提供了直观的 Web UI
+
+## 安装
+
 ```bash
+npm install -g claude-provider-switcher
+# 或使用 pnpm
+pnpm add -g claude-provider-switcher
+```
+
+## 快速开始
+
+### 1. 启动 Web UI（推荐）
+
+```bash
+cps serve
+```
+
+然后打开 http://localhost:8787 即可通过界面管理 Provider。
+
+### 2. 使用 CLI
+
+```bash
+# 查看当前配置
+cps current
+
+# 列出所有 Provider
+cps list
+
+# 切换到指定 Provider
+cps set anthropic
+
+# 添加自定义 Provider
+cps add my-provider \
+  --base-url https://api.example.com \
+  --token sk-xxx \
+  --model claude-3-5-sonnet
+```
+
+## CLI 命令参考
+
+| 命令 | 描述 |
+|------|------|
+| `cps list` | 列出所有配置的 Provider |
+| `cps current` | 显示当前使用的 Provider |
+| `cps set <name>` | 切换到指定的 Provider |
+| `cps add <name>` | 添加新的 Provider |
+| `cps remove <name>` | 删除指定的 Provider |
+| `cps serve` | 启动 Web UI 服务 |
+
+## 预设 Provider
+
+首次运行时会自动创建以下预设配置：
+
+| Provider | 说明 |
+|----------|------|
+| `anthropic` | 官方 API，需先运行 `claude code /login` 登录 |
+| `智谱Coding Plan` | 智谱 AI 的 Coding 套餐 |
+| `火山方舟Coding Plan` | 火山方舟的 Coding 套餐 |
+| `custom` | 占位配置，可自行修改为自定义 Provider |
+
+## 配置说明
+
+### 默认路径
+
+- **Provider 配置**：`~/.config/claude-provider-switcher/config.json`
+- **Claude 设置**：`~/.claude/settings.json`
+- **备份文件**：`~/.claude/settings.backup-*.json`（保留最近 3 份）
+
+### 环境变量
+
+可通过以下环境变量覆盖默认路径：
+
+```bash
+export CPS_CONFIG_PATH=/path/to/config.json
+export CPS_CONFIG_DIR=/path/to/config/dir
+export CPS_CLAUDE_SETTINGS_PATH=/path/to/settings.json
+export CPS_CLAUDE_DIR=/path/to/claude/dir
+```
+
+## 开发
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/claude-provider-switcher.git
+cd claude-provider-switcher
+
+# 安装依赖
 pnpm install
-pnpm run build
-pnpm dlx claude-provider serve
-```
 
-### CLI Examples
-```bash
-pnpm dlx claude-provider list
-pnpm dlx claude-provider add custom --base-url https://api.example.com --token sk-xxx --model claude-3-5-sonnet --website https://example.com --description "Custom provider"
-pnpm dlx claude-provider set custom
-pnpm dlx claude-provider current
-```
-
-### Development
-```bash
+# 开发模式（同时启动 UI 和 API 服务）
 pnpm run dev
-# UI dev server on http://localhost:5173
-# API server on http://localhost:8787
-# Any file change under packages/ will restart both servers.
-```
 
-## Settings Mapping
-This tool writes to `~/.claude/settings.json` and updates:
-- `env.ANTHROPIC_BASE_URL`
-- `env.ANTHROPIC_AUTH_TOKEN`
-- `env.ANTHROPIC_MODEL` (removed if empty)
+# 构建
+pnpm run build
 
-## Testing
-```bash
+# 测试
 pnpm run test
 ```
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  Made with ❤️ for Claude Code users
+</p>

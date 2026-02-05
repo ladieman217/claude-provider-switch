@@ -35,6 +35,12 @@ export const readClaudeSettings = async (
   }
 };
 
+export type ClaudeSettingsBackup = {
+  name: string;
+  mtime: number;
+  size: number;
+};
+
 const listBackups = async (claudeDir: string) => {
   try {
     const entries = await fs.readdir(claudeDir, { withFileTypes: true });
@@ -89,6 +95,39 @@ const backupClaudeSettings = async (
   await pruneBackups(claudeDir, 3);
 };
 
+export const listClaudeSettingsBackups = async (
+  options: PathsOptions = {}
+): Promise<ClaudeSettingsBackup[]> => {
+  const { claudeDir } = resolvePaths(options);
+  const names = await listBackups(claudeDir);
+
+  const backups = await Promise.all(
+    names.map(async (name) => {
+      const fullPath = path.join(claudeDir, name);
+      const stat = await fs.stat(fullPath);
+      return { name, mtime: stat.mtimeMs, size: stat.size };
+    })
+  );
+
+  return backups.sort((a, b) => b.mtime - a.mtime);
+};
+
+export const restoreClaudeSettingsBackup = async (
+  name: string,
+  options: PathsOptions = {}
+): Promise<void> => {
+  if (!name || !name.startsWith(BACKUP_PREFIX)) {
+    throw new Error("Invalid backup name.");
+  }
+
+  const { claudeDir, claudeSettingsPath } = resolvePaths(options);
+  const backupPath = path.join(claudeDir, name);
+
+  await fs.mkdir(claudeDir, { recursive: true });
+  await backupClaudeSettings(claudeSettingsPath, claudeDir);
+  await fs.copyFile(backupPath, claudeSettingsPath);
+};
+
 export const applyProviderToClaudeSettings = async (
   provider: ProviderConfig,
   options: PathsOptions = {}
@@ -102,13 +141,22 @@ export const applyProviderToClaudeSettings = async (
       ? { ...(settings.env as Record<string, string>) }
       : {};
 
-  env.ANTHROPIC_BASE_URL = provider.baseUrl ?? "";
-  env.ANTHROPIC_AUTH_TOKEN = provider.authToken ?? "";
+  const isAnthropic =
+    provider.name && provider.name.trim().toLowerCase() === "anthropic";
 
-  if (provider.model && provider.model.trim()) {
-    env.ANTHROPIC_MODEL = provider.model.trim();
-  } else {
+  if (isAnthropic) {
+    delete env.ANTHROPIC_BASE_URL;
+    delete env.ANTHROPIC_AUTH_TOKEN;
     delete env.ANTHROPIC_MODEL;
+  } else {
+    env.ANTHROPIC_BASE_URL = provider.baseUrl ?? "";
+    env.ANTHROPIC_AUTH_TOKEN = provider.authToken ?? "";
+
+    if (provider.model && provider.model.trim()) {
+      env.ANTHROPIC_MODEL = provider.model.trim();
+    } else {
+      delete env.ANTHROPIC_MODEL;
+    }
   }
 
   const nextSettings = {

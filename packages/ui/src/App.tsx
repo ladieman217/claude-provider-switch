@@ -32,6 +32,16 @@ type ProvidersResponse = {
   current: string | null;
 };
 
+type BackupInfo = {
+  name: string;
+  mtime: number;
+  size: number;
+};
+
+type BackupsResponse = {
+  backups: BackupInfo[];
+};
+
 type Status = { type: "success" | "error"; message: string } | null;
 
 const emptyForm: Provider = {
@@ -61,6 +71,8 @@ export default function App() {
   const [status, setStatus] = useState<Status>(null);
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
+  const [backups, setBackups] = useState<BackupInfo[]>([]);
+  const [restoreTarget, setRestoreTarget] = useState<BackupInfo | null>(null);
 
   const fetchProviders = async () => {
     const response = await fetch("/api/providers");
@@ -72,8 +84,20 @@ export default function App() {
     setCurrent(data.current);
   };
 
+  const fetchBackups = async () => {
+    const response = await fetch("/api/backups");
+    if (!response.ok) {
+      throw new Error("Failed to load backups.");
+    }
+    const data = (await response.json()) as BackupsResponse;
+    setBackups(data.backups);
+  };
+
   useEffect(() => {
     fetchProviders().catch((error) =>
+      setStatus({ type: "error", message: error.message })
+    );
+    fetchBackups().catch((error) =>
       setStatus({ type: "error", message: error.message })
     );
   }, []);
@@ -206,12 +230,38 @@ export default function App() {
     }
   };
 
+  const handleRestore = async (backup: BackupInfo) => {
+    setLoading(true);
+    setStatus(null);
+    try {
+      const response = await fetch("/api/backups/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: backup.name })
+      });
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error ?? "Failed to restore backup.");
+      }
+      await fetchBackups();
+      setStatus({ type: "success", message: "Backup restored." });
+    } catch (error) {
+      setStatus({ type: "error", message: (error as Error).message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const currentProvider = useMemo(
     () => providers.find((provider) => provider.name === current),
     [providers, current]
   );
 
+  const isAnthropic = (provider: Provider) =>
+    provider.name.trim().toLowerCase() === "anthropic";
+
   const missingFields = (provider: Provider) => {
+    if (isAnthropic(provider)) return [];
     const missing: string[] = [];
     if (!provider.baseUrl?.trim()) missing.push("Base URL");
     if (!provider.authToken?.trim()) missing.push("Auth Token");
@@ -304,7 +354,7 @@ export default function App() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEdit(provider)}
-                          disabled={loading}
+                          disabled={loading || isAnthropic(provider)}
                         >
                           编辑
                         </Button>
@@ -312,7 +362,7 @@ export default function App() {
                           size="sm"
                           variant="ghost"
                           onClick={() => setDeleteTarget(provider)}
-                          disabled={loading}
+                          disabled={loading || isAnthropic(provider)}
                         >
                           删除
                         </Button>
@@ -322,6 +372,11 @@ export default function App() {
                       <span>Base URL: {provider.baseUrl || "-"}</span>
                       <span>Website: {provider.website || "-"}</span>
                       <span>Model: {provider.model || "-"}</span>
+                      {isAnthropic(provider) && (
+                        <span className="text-sand-200/80">
+                          使用 Claude Code /login 登录状态，配置由系统维护，无法编辑
+                        </span>
+                      )}
                       {!canApply(provider) && (
                         <span className="text-coral-400">
                           缺少 {missingFields(provider).join(" / ")}，
@@ -335,11 +390,12 @@ export default function App() {
             </CardContent>
           </Card>
 
-          <Card className="fade-in">
-            <CardHeader>
-              <CardTitle>{editing ? "编辑 Provider" : "新增 Provider"}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
+            <Card className="fade-in">
+              <CardHeader>
+                <CardTitle>{editing ? "编辑 Provider" : "新增 Provider"}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">
                   名称 <span className="text-coral-400">*</span>
@@ -427,20 +483,56 @@ export default function App() {
                   重置
                 </Button>
               </div>
-              {status && (
-                <div
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-xs",
-                    status.type === "success"
-                      ? "bg-mint-500/20 text-mint-400"
-                      : "bg-coral-500/20 text-coral-400"
-                  )}
-                >
-                  {status.message}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {status && (
+                  <div
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-xs",
+                      status.type === "success"
+                        ? "bg-mint-500/20 text-mint-400"
+                        : "bg-coral-500/20 text-coral-400"
+                    )}
+                  >
+                    {status.message}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="fade-in">
+              <CardHeader>
+                <CardTitle>Claude 设置备份</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {backups.length === 0 && (
+                  <p className="text-sm text-sand-200/70">暂无备份。</p>
+                )}
+                {backups.map((backup) => (
+                  <div
+                    key={backup.name}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sand-200/10 bg-ink-800/60 px-4 py-3"
+                  >
+                    <div className="flex flex-col gap-1 text-xs text-sand-200/70">
+                      <span className="font-mono text-sand-100">
+                        {backup.name}
+                      </span>
+                      <span>
+                        {new Date(backup.mtime).toLocaleString()} ·{" "}
+                        {Math.round(backup.size / 1024)} KB
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRestoreTarget(backup)}
+                      disabled={loading}
+                    >
+                      恢复
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
       <AlertDialog
@@ -473,6 +565,40 @@ export default function App() {
               }}
             >
               删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={Boolean(restoreTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRestoreTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>恢复 Claude 设置</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要恢复备份{" "}
+              <span className="font-semibold text-sand-100">
+                {restoreTarget?.name}
+              </span>{" "}
+              吗？当前设置会先自动备份一次。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRestoreTarget(null)}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (restoreTarget) {
+                  handleRestore(restoreTarget);
+                  setRestoreTarget(null);
+                }
+              }}
+            >
+              恢复
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

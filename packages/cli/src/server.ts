@@ -7,7 +7,9 @@ import {
   applyProviderToClaudeSettings,
   ensureConfig,
   findProvider,
+  listClaudeSettingsBackups,
   removeProvider,
+  restoreClaudeSettingsBackup,
   saveConfig,
   setCurrentProvider,
   updateProvider
@@ -77,7 +79,7 @@ export const createApp = async (options: ServerOptions = {}) => {
       await saveConfig(nextConfig, options);
       res.json({ providers: nextConfig.providers, current: nextConfig.current });
     } catch (error) {
-      res.status(404).json({ error: (error as Error).message });
+      res.status(400).json({ error: (error as Error).message });
     }
   });
 
@@ -87,6 +89,25 @@ export const createApp = async (options: ServerOptions = {}) => {
       ? findProvider(config, config.current)
       : undefined;
     res.json({ current: config.current, provider });
+  });
+
+  app.get("/api/backups", async (_req, res) => {
+    const backups = await listClaudeSettingsBackups(options);
+    res.json({ backups });
+  });
+
+  app.post("/api/backups/restore", async (req, res) => {
+    try {
+      const { name } = req.body as { name?: string };
+      if (!name) {
+        res.status(400).json({ error: "Backup name is required." });
+        return;
+      }
+      await restoreClaudeSettingsBackup(name, options);
+      res.json({ restored: true });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
   });
 
   app.post("/api/current", async (req, res) => {
