@@ -1,0 +1,16 @@
+{
+  "name": "claude-provider-switcher",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon --watch packages --ext ts,tsx,css,html,json --signal SIGTERM --exec \"pnpm run dev:inner\"",
+    "dev:inner": "concurrently \"pnpm -C packages/ui run dev\" \"pnpm -C packages/cli run dev\"",
+    "build": "pnpm -C packages/ui run build && pnpm -C packages/cli run build",
+    "lint": "pnpm -C packages/cli run lint && pnpm -C packages/ui run lint",
+    "test": "pnpm -C packages/cli run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "nodemon": "^3.1.7",
+    "typescript": "^5.6.3"
+  }
+}
