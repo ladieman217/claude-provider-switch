@@ -11,8 +11,7 @@
     "release:publish": "cd packages/cli && npm_config_cache=../../.npm-cache npm publish --access public",
     "release:patch": "bash scripts/release-bump.sh patch",
     "release:minor": "bash scripts/release-bump.sh minor",
-    "release:major": "bash scripts/release-bump.sh major",
-    "release:tag": "bash scripts/release-tag.sh"
+    "release:major": "bash scripts/release-bump.sh major"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
