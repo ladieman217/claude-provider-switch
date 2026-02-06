@@ -9,6 +9,9 @@
     "test": "pnpm -C packages/cli run test",
     "release:check": "pnpm run lint && pnpm run test && (cd packages/cli && npm_config_cache=../../.npm-cache npm pack --dry-run)",
     "release:publish": "cd packages/cli && npm_config_cache=../../.npm-cache npm publish --access public",
+    "release:patch": "pnpm run release:check && (cd packages/cli && npm version patch -m \"chore(release): v%s\") && git push origin HEAD --follow-tags",
+    "release:minor": "pnpm run release:check && (cd packages/cli && npm version minor -m \"chore(release): v%s\") && git push origin HEAD --follow-tags",
+    "release:major": "pnpm run release:check && (cd packages/cli && npm version major -m \"chore(release): v%s\") && git push origin HEAD --follow-tags",
     "release:tag": "bash scripts/release-tag.sh"
   },
   "devDependencies": {

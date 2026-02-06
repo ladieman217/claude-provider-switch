@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,11 +31,6 @@ jobs:
           node-version: 20
           cache: pnpm
           registry-url: https://registry.npmjs.org
-
-      - name: Ensure NPM_TOKEN is configured
-        run: test -n "${NPM_TOKEN}" || (echo "NPM_TOKEN secret is required." && exit 1)
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -52,7 +48,5 @@ jobs:
             exit 1
           fi
 
-      - name: Publish package
-        run: cd packages/cli && npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish package (Trusted Publisher)
+        run: cd packages/cli && npm publish --access public --provenance

@@ -122,7 +122,13 @@ pnpm run test
 pnpm run release:check
 ```
 
-正式发布：
+推荐（自动 bump 版本 + 打 tag + push，触发 GitHub Actions 发布）：
+
+```bash
+pnpm run release:patch  # 或 release:minor / release:major
+```
+
+手动发布（本地直接发 npm）：
 
 ```bash
 npm login
@@ -133,6 +139,7 @@ pnpm run release:publish
 - 实际发布包目录是 `packages/cli`。
 - 发布时会自动执行 `lint`、`test`，并在打包前自动构建 UI + CLI。
 - 如果启用了 2FA，`npm publish` 会提示输入 OTP。
+- `release:patch/minor/major` 会在 `packages/cli` 执行 `npm version`，自动创建 `vX.Y.Z` tag 并执行 `git push origin HEAD --follow-tags`。
 
 ## 贡献
 
