@@ -139,6 +139,79 @@ describe("server api", () => {
     expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
   });
 
+  it("accepts user-defined provider id", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const app = await createApp({ configDir, configPath });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const getProviders = getRouteHandler(app, "get", "/api/providers");
+
+    const createRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          id: "team-prod",
+          name: "Team Prod Provider",
+          baseUrl: "https://example.com",
+          authToken: "token"
+        },
+        params: {}
+      },
+      createRes
+    );
+    expect(createRes.statusCode).toBe(201);
+
+    const listRes = createMockResponse();
+    await getProviders({ body: {}, params: {} }, listRes);
+    expect(listRes.statusCode).toBe(200);
+    const created = (
+      listRes.body as { providers: Array<{ id?: string; name: string }> }
+    ).providers.find((provider) => provider.name === "team prod provider");
+    expect(created?.id).toBe("team-prod");
+  });
+
+  it("rejects duplicate user-defined provider id", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const app = await createApp({ configDir, configPath });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+
+    const firstRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          id: "team-prod",
+          name: "Provider A",
+          baseUrl: "https://a.example.com",
+          authToken: "token-a"
+        },
+        params: {}
+      },
+      firstRes
+    );
+    expect(firstRes.statusCode).toBe(201);
+
+    const secondRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          id: "team-prod",
+          name: "Provider B",
+          baseUrl: "https://b.example.com",
+          authToken: "token-b"
+        },
+        params: {}
+      },
+      secondRes
+    );
+    expect(secondRes.statusCode).toBe(400);
+    expect((secondRes.body as { error: string }).error).toContain(
+      "already exists"
+    );
+  });
+
   it("does not keep nonessential traffic flag for anthropic preset", async () => {
     const tempDir = await makeTempDir();
     const configDir = path.join(tempDir, "config");

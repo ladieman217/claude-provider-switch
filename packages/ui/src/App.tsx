@@ -18,6 +18,7 @@ import {
 import { cn } from "./lib/utils";
 
 type Provider = {
+  id?: string;
   name: string;
   baseUrl?: string;
   authToken?: string;
@@ -45,6 +46,7 @@ type BackupsResponse = {
 type Status = { type: "success" | "error"; message: string } | null;
 
 const emptyForm: Provider = {
+  id: "",
   name: "",
   baseUrl: "",
   authToken: "",
@@ -62,6 +64,9 @@ const isValidUrl = (value?: string) => {
     return false;
   }
 };
+
+const isValidProviderId = (value: string) =>
+  /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
 export default function App() {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -109,10 +114,28 @@ export default function App() {
 
   const handleSubmit = async () => {
     setStatus(null);
+    const normalizedId = form.id?.trim() ?? "";
 
     if (!form.name.trim()) {
       setStatus({ type: "error", message: "Provider name is required." });
       return;
+    }
+    if (normalizedId) {
+      if (normalizedId.length > 24) {
+        setStatus({
+          type: "error",
+          message: "Provider id must be at most 24 characters."
+        });
+        return;
+      }
+      if (!isValidProviderId(normalizedId)) {
+        setStatus({
+          type: "error",
+          message:
+            "Provider id must use lowercase letters, numbers, and hyphens only."
+        });
+        return;
+      }
     }
 
     if (!form.baseUrl?.trim()) {
@@ -135,6 +158,7 @@ export default function App() {
     }
 
     const payload = {
+      id: normalizedId || undefined,
       name: form.name.trim(),
       baseUrl: form.baseUrl?.trim() || "",
       authToken: form.authToken?.trim() || "",
@@ -174,6 +198,7 @@ export default function App() {
   const handleEdit = (provider: Provider) => {
     setEditing(provider.name);
     setForm({
+      id: provider.id ?? "",
       name: provider.name,
       baseUrl: provider.baseUrl ?? "",
       authToken: "",
@@ -206,21 +231,25 @@ export default function App() {
     }
   };
 
-  const handleApply = async (name: string) => {
+  const handleApply = async (provider: Provider) => {
+    if (!provider.id) {
+      setStatus({ type: "error", message: "Provider id is missing." });
+      return;
+    }
     setLoading(true);
     setStatus(null);
     try {
       const response = await fetch("/api/current", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ id: provider.id })
       });
       if (!response.ok) {
         const body = await response.json();
         throw new Error(body.error ?? "Failed to apply provider.");
       }
       await fetchProviders();
-      setStatus({ type: "success", message: `Applied '${name}'.` });
+      setStatus({ type: "success", message: `Applied '${provider.name}'.` });
     } catch (error) {
       setStatus({ type: "error", message: (error as Error).message });
     } finally {
@@ -297,6 +326,9 @@ export default function App() {
               <span className="text-sm font-semibold text-sand-100">
                 {currentProvider.name}
               </span>
+              <span className="text-xs font-mono text-sand-200/70">
+                id: {currentProvider.id || "-"}
+              </span>
               <span className="text-xs text-sand-200/70">
                 {currentProvider.baseUrl || "未设置 Base URL"}
               </span>
@@ -324,10 +356,10 @@ export default function App() {
                       isCurrent && "border-mint-400/40 shadow-glow"
                     )}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-col gap-2">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+                      <div className="min-w-0 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-sand-100">
+                          <h3 className="break-words text-lg font-semibold leading-tight text-sand-100">
                             {provider.name}
                           </h3>
                           {isCurrent && <Badge variant="success">当前</Badge>}
@@ -339,16 +371,22 @@ export default function App() {
                             "尚未设置 Base URL"}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-col gap-2 md:items-end">
+                        <span className="inline-flex max-w-full rounded-md border border-sand-200/20 px-2 py-0.5 font-mono text-xs text-sand-200/80">
+                          id: {provider.id || "-"}
+                        </span>
+                        <div className="grid grid-cols-3 gap-2 md:flex md:flex-nowrap md:justify-end">
                         <Button
                           size="sm"
-                          onClick={() => handleApply(provider.name)}
-                          disabled={loading || !canApply(provider)}
+                          className="w-full md:w-auto"
+                          onClick={() => handleApply(provider)}
+                          disabled={loading || !canApply(provider) || !provider.id}
                         >
                           应用
                         </Button>
                         <Button
                           size="sm"
+                          className="w-full md:w-auto"
                           variant="outline"
                           onClick={() => handleEdit(provider)}
                           disabled={loading || isAnthropic(provider)}
@@ -357,12 +395,14 @@ export default function App() {
                         </Button>
                         <Button
                           size="sm"
+                          className="w-full md:w-auto"
                           variant="ghost"
                           onClick={() => setDeleteTarget(provider)}
                           disabled={loading || isAnthropic(provider)}
                         >
                           删除
                         </Button>
+                        </div>
                       </div>
                     </div>
                     <div className="grid gap-2 text-xs text-sand-200/70">
@@ -406,6 +446,23 @@ export default function App() {
                   }
                   placeholder="例如 custom"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="id">ID</Label>
+                <Input
+                  id="id"
+                  value={form.id}
+                  disabled={Boolean(editing)}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, id: event.target.value }))
+                  }
+                  placeholder="例如 my-provider"
+                />
+                <p className="text-xs text-sand-200/70">
+                  {editing
+                    ? "创建后不可修改。"
+                    : "选填。仅支持小写字母、数字、-，最长 24 字符。"}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="baseUrl">

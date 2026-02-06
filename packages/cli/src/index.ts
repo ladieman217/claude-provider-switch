@@ -190,6 +190,7 @@ program
 program
   .command("add")
   .argument("<name>", "Provider name")
+  .option("--id <id>", "Stable provider id (lowercase letters/numbers/hyphen)")
   .option("--base-url <url>", "Base URL")
   .option("--token <token>", "Auth token")
   .option("--token-stdin", "Read auth token from stdin")
@@ -200,6 +201,7 @@ program
   .action(async (
     name: string,
     options: {
+      id?: string;
       baseUrl?: string;
       token?: string;
       tokenStdin?: boolean;
@@ -236,6 +238,7 @@ program
     }
     const config = await ensureConfig();
     const provider: ProviderConfig = {
+      id: options.id,
       name,
       baseUrl: options.baseUrl,
       authToken,

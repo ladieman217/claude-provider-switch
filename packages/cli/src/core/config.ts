@@ -5,6 +5,7 @@ import { DEFAULT_PRESETS } from "./presets";
 import { resolvePaths } from "./paths";
 
 const CONFIG_VERSION = 1 as const;
+const PROVIDER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const normalizeProviderName = (name: string) => name.trim().toLowerCase();
 export const normalizeProviderId = (id: string) =>
@@ -45,6 +46,17 @@ const buildUniqueProviderId = (base: string, usedIds: Set<string>) => {
 
   usedIds.add(candidate);
   return candidate;
+};
+
+const assertValidProviderId = (id: string) => {
+  if (id.length > 24) {
+    throw new Error("Provider id must be at most 24 characters.");
+  }
+  if (!PROVIDER_ID_PATTERN.test(id)) {
+    throw new Error(
+      "Provider id must use lowercase letters, numbers, and hyphens only."
+    );
+  }
 };
 
 export const createDefaultConfig = (): ConfigFile => ({
@@ -221,10 +233,22 @@ export const addProvider = (
       .map((item) => (typeof item.id === "string" ? normalizeProviderId(item.id) : ""))
       .filter(Boolean)
   );
-  const nextId = buildUniqueProviderId(
-    toProviderIdBase({ ...provider, name: normalizedName }),
-    usedIds
-  );
+  const rawProvidedId =
+    typeof provider.id === "string" ? provider.id.trim() : undefined;
+  let nextId: string;
+  if (rawProvidedId) {
+    assertValidProviderId(rawProvidedId);
+    const normalizedProvidedId = normalizeProviderId(rawProvidedId);
+    if (usedIds.has(normalizedProvidedId)) {
+      throw new Error(`Provider id '${normalizedProvidedId}' already exists.`);
+    }
+    nextId = normalizedProvidedId;
+  } else {
+    nextId = buildUniqueProviderId(
+      toProviderIdBase({ ...provider, name: normalizedName }),
+      usedIds
+    );
+  }
 
   return {
     ...config,

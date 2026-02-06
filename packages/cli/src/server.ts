@@ -139,14 +139,15 @@ export const createApp = async (
   app.post("/api/current", async (req, res) => {
     try {
       const config = await loadConfig(options);
-      const { name } = req.body as { name?: string };
-      if (!name) {
-        res.status(400).json({ error: "Provider name is required." });
+      const { id, name } = req.body as { id?: string; name?: string };
+      const reference = id ?? name;
+      if (!reference) {
+        res.status(400).json({ error: "Provider id is required." });
         return;
       }
 
-      const nextConfig = setCurrentProvider(config, name);
-      const provider = findProviderByReference(nextConfig, name);
+      const nextConfig = setCurrentProvider(config, reference);
+      const provider = findProviderByReference(nextConfig, reference);
       if (!provider) {
         res.status(404).json({ error: "Provider not found." });
         return;

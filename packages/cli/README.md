@@ -29,6 +29,8 @@ cps set anthropic
 - `cps current`: show current provider
 - `cps select`: interactively select and apply a provider
 - `cps set <id>`: switch provider by id and apply to Claude settings
-- `cps add <name>`: add a provider
+- `cps add <name>`: add a provider (optional `--id` for stable id)
 - `cps remove <name>`: remove a provider
 - `cps serve`: start local UI + API server
+
+`--id` format: lowercase letters, numbers, and hyphens only, max length 24, unique.

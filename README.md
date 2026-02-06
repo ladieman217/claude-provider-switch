@@ -52,6 +52,7 @@ cps set anthropic
 
 # 添加自定义 Provider
 cps add my-provider \
+  --id my-provider \
   --base-url https://api.example.com \
   --token sk-xxx \
   --model claude-3-5-sonnet
@@ -65,9 +66,11 @@ cps add my-provider \
 | `cps current` | 显示当前使用的 Provider |
 | `cps select` | 交互式选择并应用 Provider |
 | `cps set <id>` | 按 id 切换到指定的 Provider |
-| `cps add <name>` | 添加新的 Provider |
+| `cps add <name>` | 添加新的 Provider（可选 `--id` 指定稳定 id） |
 | `cps remove <name>` | 删除指定的 Provider |
 | `cps serve` | 启动 Web UI 服务 |
+
+`--id` 规则：仅支持小写字母、数字和连字符（`-`），最长 24 字符，且必须唯一。
 
 ## 预设 Provider
 
