@@ -98,7 +98,7 @@ export CPS_CLAUDE_DIR=/path/to/claude/dir
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/claude-provider-switcher.git
+git clone https://github.com/ladieman217/claude-provider-switcher.git
 cd claude-provider-switcher
 
 # 安装依赖
@@ -113,6 +113,26 @@ pnpm run build
 # 测试
 pnpm run test
 ```
+
+## 发布 npm 包
+
+发布前检查：
+
+```bash
+pnpm run release:check
+```
+
+正式发布：
+
+```bash
+npm login
+pnpm run release:publish
+```
+
+说明：
+- 实际发布包目录是 `packages/cli`。
+- 发布时会自动执行 `lint`、`test`，并在打包前自动构建 UI + CLI。
+- 如果启用了 2FA，`npm publish` 会提示输入 OTP。
 
 ## 贡献
 

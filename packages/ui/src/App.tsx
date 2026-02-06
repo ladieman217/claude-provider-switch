@@ -120,7 +120,7 @@ export default function App() {
       return;
     }
 
-    if (!form.authToken?.trim()) {
+    if (!editing && !form.authToken?.trim()) {
       setStatus({ type: "error", message: "Auth token is required." });
       return;
     }
@@ -181,7 +181,7 @@ export default function App() {
     setForm({
       name: provider.name,
       baseUrl: provider.baseUrl ?? "",
-      authToken: provider.authToken ?? "",
+      authToken: "",
       model: provider.model ?? "",
       description: provider.description ?? "",
       website: provider.website ?? ""
@@ -191,9 +191,12 @@ export default function App() {
   const handleRemove = async (provider: Provider) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/providers/${provider.name}`, {
+      const response = await fetch(
+        `/api/providers/${encodeURIComponent(provider.name)}`,
+        {
         method: "DELETE"
-      });
+        }
+      );
       if (!response.ok) {
         const body = await response.json();
         throw new Error(body.error ?? "Failed to remove provider.");
@@ -426,7 +429,8 @@ export default function App() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="authToken">
-                  Auth Token <span className="text-coral-400">*</span>
+                  Auth Token{" "}
+                  {!editing && <span className="text-coral-400">*</span>}
                 </Label>
                 <Input
                   id="authToken"
@@ -437,7 +441,14 @@ export default function App() {
                   }
                   placeholder="sk-..."
                 />
-                <p className="text-xs text-sand-200/70">必填，用于应用 Provider。</p>
+                <p className="text-xs text-sand-200/70">
+                  {editing ? "编辑时可留空。" : "必填，用于应用 Provider。"}
+                </p>
+                {editing && (
+                  <p className="text-xs text-sand-200/70">
+                    留空表示保持当前 token 不变。
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="model">

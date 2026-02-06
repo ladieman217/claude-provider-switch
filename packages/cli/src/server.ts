@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs/promises";
+import type { Server } from "http";
 import {
   addProvider,
   assertProviderHasAuthToken,
@@ -19,6 +20,17 @@ import type { PathsOptions, ProviderConfig } from "./core";
 export type ServerOptions = PathsOptions & {
   uiDistPath?: string;
 };
+
+export const sanitizeProviderForResponse = (
+  provider: ProviderConfig
+): ProviderConfig => ({
+  ...provider,
+  authToken: provider.authToken ? "***" : ""
+});
+
+export const sanitizeProvidersForResponse = (
+  providers: ProviderConfig[]
+): ProviderConfig[] => providers.map(sanitizeProviderForResponse);
 
 const loadConfig = async (options: PathsOptions) => ensureConfig(options);
 
@@ -39,13 +51,18 @@ const resolveUiDist = async (uiDistPath?: string) => {
   return null;
 };
 
-export const createApp = async (options: ServerOptions = {}) => {
+export const createApp = async (
+  options: ServerOptions = {}
+): Promise<express.Express> => {
   const app = express();
   app.use(express.json());
 
   app.get("/api/providers", async (_req, res) => {
     const config = await loadConfig(options);
-    res.json({ providers: config.providers, current: config.current });
+    res.json({
+      providers: sanitizeProvidersForResponse(config.providers),
+      current: config.current
+    });
   });
 
   app.post("/api/providers", async (req, res) => {
@@ -54,7 +71,9 @@ export const createApp = async (options: ServerOptions = {}) => {
       const payload = req.body as ProviderConfig;
       const nextConfig = addProvider(config, payload);
       await saveConfig(nextConfig, options);
-      res.status(201).json({ providers: nextConfig.providers });
+      res
+        .status(201)
+        .json({ providers: sanitizeProvidersForResponse(nextConfig.providers) });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -66,7 +85,7 @@ export const createApp = async (options: ServerOptions = {}) => {
       const updates = req.body as ProviderConfig;
       const nextConfig = updateProvider(config, req.params.name, updates);
       await saveConfig(nextConfig, options);
-      res.json({ providers: nextConfig.providers });
+      res.json({ providers: sanitizeProvidersForResponse(nextConfig.providers) });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -77,7 +96,10 @@ export const createApp = async (options: ServerOptions = {}) => {
       const config = await loadConfig(options);
       const nextConfig = removeProvider(config, req.params.name);
       await saveConfig(nextConfig, options);
-      res.json({ providers: nextConfig.providers, current: nextConfig.current });
+      res.json({
+        providers: sanitizeProvidersForResponse(nextConfig.providers),
+        current: nextConfig.current
+      });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -88,7 +110,10 @@ export const createApp = async (options: ServerOptions = {}) => {
     const provider = config.current
       ? findProvider(config, config.current)
       : undefined;
-    res.json({ current: config.current, provider });
+    res.json({
+      current: config.current,
+      provider: provider ? sanitizeProviderForResponse(provider) : undefined
+    });
   });
 
   app.get("/api/backups", async (_req, res) => {
@@ -136,7 +161,10 @@ export const createApp = async (options: ServerOptions = {}) => {
       await saveConfig(nextConfig, options);
       await applyProviderToClaudeSettings(provider, options);
 
-      res.json({ current: nextConfig.current, provider });
+      res.json({
+        current: nextConfig.current,
+        provider: sanitizeProviderForResponse(provider)
+      });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -161,7 +189,10 @@ export const createApp = async (options: ServerOptions = {}) => {
   return app;
 };
 
-export const startServer = async (options: ServerOptions, port: number) => {
+export const startServer = async (
+  options: ServerOptions,
+  port: number
+): Promise<Server> => {
   const app = await createApp(options);
-  return app.listen(port);
+  return app.listen(port, "127.0.0.1");
 };

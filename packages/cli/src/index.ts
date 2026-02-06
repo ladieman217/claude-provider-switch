@@ -18,6 +18,17 @@ const defaultUiDist = path.resolve(__dirname, "ui");
 
 const program = new Command();
 
+const readTokenFromStdin = async (): Promise<string> =>
+  await new Promise<string>((resolve, reject) => {
+    let token = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      token += chunk;
+    });
+    process.stdin.on("end", () => resolve(token.trim()));
+    process.stdin.on("error", reject);
+  });
+
 const formatProvider = (provider: ProviderConfig) => {
   const parts = [provider.name];
   if (provider.baseUrl) {
@@ -115,6 +126,7 @@ program
   .argument("<name>", "Provider name")
   .option("--base-url <url>", "Base URL")
   .option("--token <token>", "Auth token")
+  .option("--token-stdin", "Read auth token from stdin")
   .option("--model <model>", "Model name")
   .option("--website <url>", "Website URL")
   .option("--description <text>", "Description")
@@ -124,17 +136,34 @@ program
     options: {
       baseUrl?: string;
       token?: string;
+      tokenStdin?: boolean;
       model?: string;
       website?: string;
       description?: string;
     }
   ) => {
+    if (options.token && options.tokenStdin) {
+      console.error("Use either --token or --token-stdin, not both.");
+      process.exitCode = 1;
+      return;
+    }
+
+    let authToken = options.token?.trim() ?? "";
+    if (options.tokenStdin) {
+      if (process.stdin.isTTY) {
+        console.error("No stdin input detected for --token-stdin.");
+        process.exitCode = 1;
+        return;
+      }
+      authToken = await readTokenFromStdin();
+    }
+
     if (!options.baseUrl?.trim()) {
       console.error("Base URL is required.");
       process.exitCode = 1;
       return;
     }
-    if (!options.token?.trim()) {
+    if (!authToken) {
       console.error("Auth token is required.");
       process.exitCode = 1;
       return;
@@ -148,7 +177,7 @@ program
     const provider: ProviderConfig = {
       name,
       baseUrl: options.baseUrl,
-      authToken: options.token,
+      authToken,
       model: options.model,
       website: options.website,
       description: options.description,

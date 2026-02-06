@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import request from "supertest";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -8,41 +7,122 @@ import { createApp } from "../src/server";
 const makeTempDir = async () =>
   await fs.mkdtemp(path.join(os.tmpdir(), "cps-cli-"));
 
+type MockResponse = {
+  statusCode: number;
+  body: unknown;
+  status: (code: number) => MockResponse;
+  json: (payload: unknown) => MockResponse;
+};
+
+const createMockResponse = (): MockResponse => ({
+  statusCode: 200,
+  body: null,
+  status(code: number) {
+    this.statusCode = code;
+    return this;
+  },
+  json(payload: unknown) {
+    this.body = payload;
+    return this;
+  }
+});
+
+const getRouteHandler = (
+  app: any,
+  method: "get" | "post" | "delete" | "put",
+  routePath: string
+) => {
+  const router = app?._router;
+  if (!router?.stack) {
+    throw new Error("Router stack not found.");
+  }
+
+  const layer = router.stack.find(
+    (item: any) => item.route?.path === routePath && item.route?.methods?.[method]
+  );
+  if (!layer?.route?.stack?.[0]?.handle) {
+    throw new Error(`Route handler not found for ${method.toUpperCase()} ${routePath}`);
+  }
+
+  return layer.route.stack[0].handle as (
+    req: Record<string, unknown>,
+    res: MockResponse
+  ) => Promise<void> | void;
+};
+
 describe("server api", () => {
   it("creates, lists, and deletes providers", async () => {
     const tempDir = await makeTempDir();
-    const app = await createApp({ configDir: path.join(tempDir, "config") });
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const app = await createApp({ configDir, configPath });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const getProviders = getRouteHandler(app, "get", "/api/providers");
+    const deleteProvider = getRouteHandler(app, "delete", "/api/providers/:name");
 
-    await request(app)
-      .post("/api/providers")
-      .send({ name: "local", baseUrl: "https://example.com" })
-      .expect(201);
+    const createRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          name: "local",
+          baseUrl: "https://example.com",
+          authToken: "token",
+          model: "model"
+        },
+        params: {}
+      },
+      createRes
+    );
+    expect(createRes.statusCode).toBe(201);
 
-    const listResponse = await request(app).get("/api/providers");
-    expect(listResponse.body.providers.some((p: { name: string }) => p.name === "local")).toBe(true);
+    const listRes = createMockResponse();
+    await getProviders({ body: {}, params: {} }, listRes);
+    expect(listRes.statusCode).toBe(200);
+    expect(
+      (listRes.body as { providers: Array<{ name: string }> }).providers.some(
+        (p) => p.name === "local"
+      )
+    ).toBe(true);
 
-    await request(app).delete("/api/providers/local").expect(200);
+    const deleteRes = createMockResponse();
+    await deleteProvider({ body: {}, params: { name: "local" } }, deleteRes);
+    expect(deleteRes.statusCode).toBe(200);
   });
 
   it("sets current provider and applies settings", async () => {
     const tempDir = await makeTempDir();
     const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
     const claudeDir = path.join(tempDir, "claude");
     const claudeSettingsPath = path.join(claudeDir, "settings.json");
 
-    const app = await createApp({ configDir, claudeDir, claudeSettingsPath });
+    const app = await createApp({
+      configDir,
+      configPath,
+      claudeDir,
+      claudeSettingsPath
+    });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const postCurrent = getRouteHandler(app, "post", "/api/current");
 
-    await request(app)
-      .post("/api/providers")
-      .send({
+    const createRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
         name: "local",
         baseUrl: "https://example.com",
         authToken: "token",
         model: "model"
-      })
-      .expect(201);
+        },
+        params: {}
+      },
+      createRes
+    );
+    expect(createRes.statusCode).toBe(201);
 
-    await request(app).post("/api/current").send({ name: "local" }).expect(200);
+    const setCurrentRes = createMockResponse();
+    await postCurrent({ body: { name: "local" }, params: {} }, setCurrentRes);
+    expect(setCurrentRes.statusCode).toBe(200);
 
     const settings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
     expect(settings.env.ANTHROPIC_BASE_URL).toBe("https://example.com");

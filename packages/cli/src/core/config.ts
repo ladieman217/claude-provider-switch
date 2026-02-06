@@ -22,14 +22,23 @@ const readJsonFile = async <T>(filePath: string): Promise<T> => {
   return JSON.parse(raw) as T;
 };
 
+const ensureOwnerOnlyFile = async (filePath: string) => {
+  try {
+    await fs.chmod(filePath, 0o600);
+  } catch {
+    // Ignore chmod errors on unsupported platforms/filesystems.
+  }
+};
+
 const writeJsonFile = async (filePath: string, data: unknown) => {
   const content = `${JSON.stringify(data, null, 2)}\n`;
-  await fs.writeFile(filePath, content, "utf8");
+  await fs.writeFile(filePath, content, { encoding: "utf8", mode: 0o600 });
+  await ensureOwnerOnlyFile(filePath);
 };
 
 export const ensureConfig = async (options: PathsOptions = {}): Promise<ConfigFile> => {
   const { configDir, configPath } = resolvePaths(options);
-  await fs.mkdir(configDir, { recursive: true });
+  await fs.mkdir(configDir, { recursive: true, mode: 0o700 });
 
   try {
     const config = await readJsonFile<ConfigFile>(configPath);
@@ -50,7 +59,7 @@ export const saveConfig = async (
   options: PathsOptions = {}
 ): Promise<void> => {
   const { configDir, configPath } = resolvePaths(options);
-  await fs.mkdir(configDir, { recursive: true });
+  await fs.mkdir(configDir, { recursive: true, mode: 0o700 });
   await writeJsonFile(configPath, normalizeConfig(config));
 };
 
@@ -165,10 +174,20 @@ export const updateProvider = (
     throw new Error("Anthropic preset is read-only.");
   }
 
-  const updatedProvider = {
-    ...target,
-    ...updates,
-    name: normalizedName
+  const nextAuthToken =
+    typeof updates.authToken === "string" && updates.authToken.trim()
+      ? updates.authToken
+      : target.authToken;
+
+  const updatedProvider: ProviderConfig = {
+    name: normalizedName,
+    baseUrl: updates.baseUrl !== undefined ? updates.baseUrl : target.baseUrl,
+    authToken: nextAuthToken,
+    model: updates.model !== undefined ? updates.model : target.model,
+    website: updates.website !== undefined ? updates.website : target.website,
+    description:
+      updates.description !== undefined ? updates.description : target.description,
+    preset: target.preset
   };
 
   assertValidProviderInput(updatedProvider);

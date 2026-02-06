@@ -1,15 +1,44 @@
 {
-  "name": "@claude-provider-switcher/cli",
+  "name": "claude-provider-switcher",
   "version": "0.1.0",
-  "private": true,
+  "description": "CLI + local web UI for switching Claude Code providers",
+  "license": "MIT",
+  "homepage": "https://github.com/ladieman217/claude-provider-switcher#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ladieman217/claude-provider-switcher.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/ladieman217/claude-provider-switcher/issues"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "cli",
+    "provider",
+    "switcher"
+  ],
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "cps": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts serve",
-    "build": "tsup && node scripts/copy-ui.mjs",
+    "build": "pnpm -C ../ui run build && tsup && node scripts/copy-ui.mjs",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:http": "CPS_ENABLE_HTTP_TESTS=1 vitest run test/server.http.test.ts",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run lint && pnpm run test"
   },
   "dependencies": {
     "commander": "^12.1.0",

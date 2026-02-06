@@ -4,6 +4,8 @@ import { resolvePaths } from "./paths";
 import { PathsOptions, ProviderConfig } from "./types";
 
 const BACKUP_PREFIX = "settings.backup-";
+const BACKUP_NAME_PATTERN =
+  /^settings\.backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/;
 
 export type ClaudeSettings = {
   env?: Record<string, string>;
@@ -15,9 +17,18 @@ const readJsonFile = async <T>(filePath: string): Promise<T> => {
   return JSON.parse(raw) as T;
 };
 
+const ensureOwnerOnlyFile = async (filePath: string) => {
+  try {
+    await fs.chmod(filePath, 0o600);
+  } catch {
+    // Ignore chmod errors on unsupported platforms/filesystems.
+  }
+};
+
 const writeJsonFile = async (filePath: string, data: unknown) => {
   const content = `${JSON.stringify(data, null, 2)}\n`;
-  await fs.writeFile(filePath, content, "utf8");
+  await fs.writeFile(filePath, content, { encoding: "utf8", mode: 0o600 });
+  await ensureOwnerOnlyFile(filePath);
 };
 
 export const readClaudeSettings = async (
@@ -92,6 +103,7 @@ const backupClaudeSettings = async (
   const backupPath = path.join(claudeDir, backupName);
 
   await fs.copyFile(claudeSettingsPath, backupPath);
+  await ensureOwnerOnlyFile(backupPath);
   await pruneBackups(claudeDir, 3);
 };
 
@@ -116,16 +128,22 @@ export const restoreClaudeSettingsBackup = async (
   name: string,
   options: PathsOptions = {}
 ): Promise<void> => {
-  if (!name || !name.startsWith(BACKUP_PREFIX)) {
+  if (!name || !BACKUP_NAME_PATTERN.test(name)) {
     throw new Error("Invalid backup name.");
   }
 
   const { claudeDir, claudeSettingsPath } = resolvePaths(options);
-  const backupPath = path.join(claudeDir, name);
+  const resolvedClaudeDir = path.resolve(claudeDir);
+  const backupPath = path.resolve(claudeDir, name);
+  const relativePath = path.relative(resolvedClaudeDir, backupPath);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new Error("Invalid backup path.");
+  }
 
-  await fs.mkdir(claudeDir, { recursive: true });
+  await fs.mkdir(claudeDir, { recursive: true, mode: 0o700 });
   await backupClaudeSettings(claudeSettingsPath, claudeDir);
   await fs.copyFile(backupPath, claudeSettingsPath);
+  await ensureOwnerOnlyFile(claudeSettingsPath);
 };
 
 export const applyProviderToClaudeSettings = async (
@@ -134,7 +152,7 @@ export const applyProviderToClaudeSettings = async (
 ): Promise<ClaudeSettings> => {
   const { claudeDir, claudeSettingsPath } = resolvePaths(options);
 
-  await fs.mkdir(claudeDir, { recursive: true });
+  await fs.mkdir(claudeDir, { recursive: true, mode: 0o700 });
   const settings = await readClaudeSettings(options);
   const env =
     settings.env && typeof settings.env === "object"
