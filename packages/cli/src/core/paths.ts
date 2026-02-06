@@ -6,7 +6,7 @@ export const resolvePaths = (options: PathsOptions = {}) => {
   const fallbackConfigDir = path.join(
     os.homedir(),
     ".config",
-    "claude-provider-switcher"
+    "claude-provider-switch"
   );
   const resolvedConfigPath =
     options.configPath ||

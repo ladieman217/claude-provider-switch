@@ -87,7 +87,7 @@ cps add my-provider \
 
 ### 默认路径
 
-- **Provider 配置**：`~/.config/claude-provider-switcher/config.json`
+- **Provider 配置**：`~/.config/claude-provider-switch/config.json`
 - **Claude 设置**：`~/.claude/settings.json`
 - **备份文件**：`~/.claude/settings.backup-*.json`（保留最近 3 份）
 
