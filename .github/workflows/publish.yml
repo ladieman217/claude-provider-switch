@@ -53,6 +53,6 @@ jobs:
           fi
 
       - name: Publish package
-        run: pnpm -C packages/cli publish --access public --no-git-checks
+        run: cd packages/cli && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
