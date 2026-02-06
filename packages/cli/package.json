@@ -1,5 +1,5 @@
 {
-  "name": "claude-provider-switcher",
+  "name": "claude-provider-switch",
   "version": "0.1.0",
   "description": "CLI + local web UI for switching Claude Code providers",
   "license": "MIT",

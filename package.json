@@ -1,5 +1,5 @@
 {
-  "name": "claude-provider-switcher-workspace",
+  "name": "claude-provider-switch-workspace",
   "private": true,
   "scripts": {
     "dev": "nodemon --watch packages --ext ts,tsx,css,html,json --signal SIGTERM --exec \"pnpm run dev:inner\"",

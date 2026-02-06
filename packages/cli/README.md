@@ -1,11 +1,11 @@
-# claude-provider-switcher
+# claude-provider-switch
 
 A CLI and local web UI to switch Claude Code providers by updating `~/.claude/settings.json`.
 
 ## Install
 
 ```bash
-npm install -g claude-provider-switcher
+npm install -g claude-provider-switch
 ```
 
 ## Usage

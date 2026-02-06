@@ -1,7 +1,7 @@
 # Claude Provider Switcher
 
-[![npm version](https://img.shields.io/npm/v/claude-provider-switcher)](https://www.npmjs.com/package/claude-provider-switcher)
-[![license](https://img.shields.io/npm/l/claude-provider-switcher)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/claude-provider-switch)](https://www.npmjs.com/package/claude-provider-switch)
+[![license](https://img.shields.io/npm/l/claude-provider-switch)](LICENSE)
 
 一键切换 Claude Code 的 API Provider。支持 Anthropic 官方 API 或任何兼容 Anthropic API 格式的第三方服务（如智谱、火山方舟等）。
 
@@ -19,9 +19,9 @@
 ## 安装
 
 ```bash
-npm install -g claude-provider-switcher
+npm install -g claude-provider-switch
 # 或使用 pnpm
-pnpm add -g claude-provider-switcher
+pnpm add -g claude-provider-switch
 ```
 
 ## 快速开始
