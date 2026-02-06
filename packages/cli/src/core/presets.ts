@@ -2,6 +2,7 @@ import { ProviderConfig } from "./types";
 
 export const DEFAULT_PRESETS: ProviderConfig[] = [
   {
+    id: "anthropic",
     name: "anthropic",
     baseUrl: "https://api.anthropic.com",
     authToken: "",
@@ -11,6 +12,7 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     website: "https://www.anthropic.com",
   },
   {
+    id: "zhipu",
     name: "智谱Coding Plan",
     baseUrl: "https://open.bigmodel.cn/api/anthropic",
     authToken: "",
@@ -20,6 +22,7 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     website: "https://open.bigmodel.cn",
   },
   {
+    id: "volc",
     name: "火山方舟Coding Plan",
     baseUrl: "https://ark.cn-beijing.volces.com/api/coding",
     authToken: "",
@@ -29,6 +32,7 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     website: "https://www.volcengine.com",
   },
   {
+    id: "custom",
     name: "custom",
     baseUrl: "",
     authToken: "",

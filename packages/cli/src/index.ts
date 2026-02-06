@@ -1,15 +1,17 @@
 import { Command } from "commander";
 import path from "path";
 import net from "net";
+import readline from "node:readline/promises";
 import {
   addProvider,
   assertProviderHasAuthToken,
   applyProviderToClaudeSettings,
   ensureConfig,
   findProvider,
+  findProviderById,
   removeProvider,
   saveConfig,
-  setCurrentProvider
+  setCurrentProviderById
 } from "./core";
 import type { ProviderConfig } from "./core";
 import { startServer } from "./server";
@@ -30,7 +32,7 @@ const readTokenFromStdin = async (): Promise<string> =>
   });
 
 const formatProvider = (provider: ProviderConfig) => {
-  const parts = [provider.name];
+  const parts = [`[${provider.id ?? "-"}] ${provider.name}`];
   if (provider.baseUrl) {
     parts.push(`(${provider.baseUrl})`);
   }
@@ -58,6 +60,20 @@ const findAvailablePort = async (start: number, attempts = 20) => {
   }
 
   throw new Error("No available port found.");
+};
+
+const applyProviderById = async (id: string): Promise<ProviderConfig> => {
+  const config = await ensureConfig();
+  const nextConfig = setCurrentProviderById(config, id);
+  const provider = findProviderById(nextConfig, id);
+  if (!provider) {
+    throw new Error("Provider not found.");
+  }
+
+  assertProviderHasAuthToken(provider);
+  await saveConfig(nextConfig);
+  await applyProviderToClaudeSettings(provider);
+  return provider;
 };
 
 program.name("claude-provider").description("Claude provider switcher");
@@ -96,29 +112,79 @@ program
 
 program
   .command("set")
-  .argument("<name>", "Provider name")
-  .description("Set current provider and apply to Claude settings")
-  .action(async (name: string) => {
-    const config = await ensureConfig();
-    const nextConfig = setCurrentProvider(config, name);
-    const provider = findProvider(nextConfig, name);
-    if (!provider) {
-      console.error("Provider not found.");
-      process.exitCode = 1;
-      return;
-    }
-
+  .argument("<id>", "Provider id")
+  .description("Set current provider by id and apply to Claude settings")
+  .action(async (id: string) => {
     try {
-      assertProviderHasAuthToken(provider);
+      const provider = await applyProviderById(id);
+      console.log(`Applied provider '${provider.name}'.`);
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
+    }
+  });
+
+program
+  .command("select")
+  .description("Interactively select provider and apply to Claude settings")
+  .action(async () => {
+    const config = await ensureConfig();
+    if (config.providers.length === 0) {
+      console.error("No providers configured.");
+      process.exitCode = 1;
       return;
     }
 
-    await saveConfig(nextConfig);
-    await applyProviderToClaudeSettings(provider);
-    console.log(`Applied provider '${provider.name}'.`);
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      console.error("Interactive select requires a TTY terminal.");
+      process.exitCode = 1;
+      return;
+    }
+
+    const current = config.current;
+    config.providers.forEach((provider, index) => {
+      const marker = provider.name === current ? "*" : " ";
+      console.log(`${index + 1}. ${marker} ${formatProvider(provider)}`);
+    });
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    try {
+      const answer = (await rl.question("Select provider by number: ")).trim();
+      const selectedIndex = Number.parseInt(answer, 10);
+      if (
+        !Number.isInteger(selectedIndex) ||
+        selectedIndex < 1 ||
+        selectedIndex > config.providers.length
+      ) {
+        console.error("Invalid selection.");
+        process.exitCode = 1;
+        return;
+      }
+
+      const provider = config.providers[selectedIndex - 1];
+      if (!provider) {
+        console.error("Provider not found.");
+        process.exitCode = 1;
+        return;
+      }
+      if (!provider.id) {
+        console.error("Provider id is missing.");
+        process.exitCode = 1;
+        return;
+      }
+
+      const applied = await applyProviderById(provider.id);
+      console.log(`Applied provider '${applied.name}'.`);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    } finally {
+      rl.close();
+    }
   });
 
 program

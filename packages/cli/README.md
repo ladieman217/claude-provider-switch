@@ -19,14 +19,16 @@ Open `http://localhost:8787` and manage providers from the UI, or use CLI comman
 ```bash
 cps list
 cps current
+cps select
 cps set anthropic
 ```
 
 ## Commands
 
-- `cps list`: list all providers
+- `cps list`: list all providers (show id + name)
 - `cps current`: show current provider
-- `cps set <name>`: switch provider and apply to Claude settings
+- `cps select`: interactively select and apply a provider
+- `cps set <id>`: switch provider by id and apply to Claude settings
 - `cps add <name>`: add a provider
 - `cps remove <name>`: remove a provider
 - `cps serve`: start local UI + API server

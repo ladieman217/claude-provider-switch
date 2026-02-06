@@ -8,6 +8,7 @@ import {
   applyProviderToClaudeSettings,
   ensureConfig,
   findProvider,
+  findProviderByReference,
   listClaudeSettingsBackups,
   removeProvider,
   restoreClaudeSettingsBackup,
@@ -145,7 +146,7 @@ export const createApp = async (
       }
 
       const nextConfig = setCurrentProvider(config, name);
-      const provider = findProvider(nextConfig, name);
+      const provider = findProviderByReference(nextConfig, name);
       if (!provider) {
         res.status(404).json({ error: "Provider not found." });
         return;

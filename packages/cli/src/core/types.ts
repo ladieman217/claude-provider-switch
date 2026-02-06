@@ -1,4 +1,5 @@
 export type ProviderConfig = {
+  id?: string;
   name: string;
   baseUrl?: string;
   authToken?: string;

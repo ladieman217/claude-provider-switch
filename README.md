@@ -42,8 +42,12 @@ cps current
 
 # 列出所有 Provider
 cps list
+# 输出示例：* [anthropic] anthropic (...)
 
-# 切换到指定 Provider
+# 交互式选择 Provider
+cps select
+
+# 按 id 切换
 cps set anthropic
 
 # 添加自定义 Provider
@@ -57,9 +61,10 @@ cps add my-provider \
 
 | 命令 | 描述 |
 |------|------|
-| `cps list` | 列出所有配置的 Provider |
+| `cps list` | 列出所有配置的 Provider（显示 id + name） |
 | `cps current` | 显示当前使用的 Provider |
-| `cps set <name>` | 切换到指定的 Provider |
+| `cps select` | 交互式选择并应用 Provider |
+| `cps set <id>` | 按 id 切换到指定的 Provider |
 | `cps add <name>` | 添加新的 Provider |
 | `cps remove <name>` | 删除指定的 Provider |
 | `cps serve` | 启动 Web UI 服务 |

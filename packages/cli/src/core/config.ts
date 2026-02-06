@@ -7,9 +7,45 @@ import { resolvePaths } from "./paths";
 const CONFIG_VERSION = 1 as const;
 
 export const normalizeProviderName = (name: string) => name.trim().toLowerCase();
+export const normalizeProviderId = (id: string) =>
+  id
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24)
+    .replace(/-+$/g, "");
 const isAnthropicName = (name: string) => normalizeProviderName(name) === "anthropic";
 const isAnthropicProvider = (provider: ProviderConfig) =>
   isAnthropicName(provider.name);
+
+const toProviderIdBase = (provider: ProviderConfig) => {
+  const explicitId =
+    typeof provider.id === "string" ? normalizeProviderId(provider.id) : "";
+  if (explicitId) {
+    return explicitId;
+  }
+
+  const fromName = normalizeProviderId(provider.name);
+  return fromName || "provider";
+};
+
+const buildUniqueProviderId = (base: string, usedIds: Set<string>) => {
+  if (!usedIds.has(base)) {
+    usedIds.add(base);
+    return base;
+  }
+
+  let index = 2;
+  let candidate = `${base}-${index}`;
+  while (usedIds.has(candidate)) {
+    index += 1;
+    candidate = `${base}-${index}`;
+  }
+
+  usedIds.add(candidate);
+  return candidate;
+};
 
 export const createDefaultConfig = (): ConfigFile => ({
   version: CONFIG_VERSION,
@@ -69,7 +105,11 @@ export const normalizeConfig = (config: ConfigFile): ConfigFile => {
     .filter((provider): provider is ProviderConfig => Boolean(provider?.name))
     .map((provider) => ({
       ...provider,
-      name: normalizeProviderName(provider.name)
+      name: normalizeProviderName(provider.name),
+      id:
+        typeof provider.id === "string"
+          ? normalizeProviderId(provider.id)
+          : undefined
     }));
 
   const uniqueProviders = new Map<string, ProviderConfig>();
@@ -79,10 +119,19 @@ export const normalizeConfig = (config: ConfigFile): ConfigFile => {
     }
   }
 
+  const usedIds = new Set<string>();
+  const providersWithIds = Array.from(uniqueProviders.values()).map((provider) => {
+    const id = buildUniqueProviderId(toProviderIdBase(provider), usedIds);
+    return {
+      ...provider,
+      id
+    };
+  });
+
   return {
     version: CONFIG_VERSION,
     current: config.current ? normalizeProviderName(config.current) : null,
-    providers: Array.from(uniqueProviders.values())
+    providers: providersWithIds
   };
 };
 
@@ -92,6 +141,32 @@ export const findProvider = (
 ): ProviderConfig | undefined => {
   const normalized = normalizeProviderName(name);
   return config.providers.find((provider) => provider.name === normalized);
+};
+
+export const findProviderByReference = (
+  config: ConfigFile,
+  reference: string
+): ProviderConfig | undefined => {
+  const normalizedId = normalizeProviderId(reference);
+  if (normalizedId) {
+    const byId = config.providers.find((provider) => provider.id === normalizedId);
+    if (byId) {
+      return byId;
+    }
+  }
+
+  return findProvider(config, reference);
+};
+
+export const findProviderById = (
+  config: ConfigFile,
+  id: string
+): ProviderConfig | undefined => {
+  const normalizedId = normalizeProviderId(id);
+  if (!normalizedId) {
+    return undefined;
+  }
+  return config.providers.find((provider) => provider.id === normalizedId);
 };
 
 export const assertValidProviderInput = (provider: ProviderConfig) => {
@@ -141,12 +216,23 @@ export const addProvider = (
 
   assertValidProviderInput(provider);
 
+  const usedIds = new Set(
+    config.providers
+      .map((item) => (typeof item.id === "string" ? normalizeProviderId(item.id) : ""))
+      .filter(Boolean)
+  );
+  const nextId = buildUniqueProviderId(
+    toProviderIdBase({ ...provider, name: normalizedName }),
+    usedIds
+  );
+
   return {
     ...config,
     providers: [
       ...config.providers,
       {
         ...provider,
+        id: nextId,
         name: normalizedName,
         preset: false
       }
@@ -174,6 +260,7 @@ export const updateProvider = (
       : target.authToken;
 
   const updatedProvider: ProviderConfig = {
+    id: target.id,
     name: normalizedName,
     baseUrl: updates.baseUrl !== undefined ? updates.baseUrl : target.baseUrl,
     authToken: nextAuthToken,
@@ -216,14 +303,28 @@ export const removeProvider = (config: ConfigFile, name: string): ConfigFile => 
 };
 
 export const setCurrentProvider = (config: ConfigFile, name: string): ConfigFile => {
-  const normalizedName = normalizeProviderName(name);
-  const provider = findProvider(config, normalizedName);
+  const provider = findProviderByReference(config, name);
   if (!provider) {
-    throw new Error(`Provider '${normalizedName}' not found.`);
+    throw new Error(`Provider '${name}' not found.`);
   }
 
   return {
     ...config,
-    current: normalizedName
+    current: provider.name
+  };
+};
+
+export const setCurrentProviderById = (
+  config: ConfigFile,
+  id: string
+): ConfigFile => {
+  const provider = findProviderById(config, id);
+  if (!provider) {
+    throw new Error(`Provider id '${id}' not found.`);
+  }
+
+  return {
+    ...config,
+    current: provider.name
   };
 };

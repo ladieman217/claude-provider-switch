@@ -77,11 +77,11 @@ describe("server api", () => {
     const listRes = createMockResponse();
     await getProviders({ body: {}, params: {} }, listRes);
     expect(listRes.statusCode).toBe(200);
-    expect(
-      (listRes.body as { providers: Array<{ name: string }> }).providers.some(
-        (p) => p.name === "local"
-      )
-    ).toBe(true);
+    const listedLocal = (
+      listRes.body as { providers: Array<{ id?: string; name: string }> }
+    ).providers.find((p) => p.name === "local");
+    expect(listedLocal).toBeTruthy();
+    expect(listedLocal?.id).toBeTruthy();
 
     const deleteRes = createMockResponse();
     await deleteProvider({ body: {}, params: { name: "local" } }, deleteRes);
@@ -102,6 +102,7 @@ describe("server api", () => {
       claudeSettingsPath
     });
     const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const getProviders = getRouteHandler(app, "get", "/api/providers");
     const postCurrent = getRouteHandler(app, "post", "/api/current");
 
     const createRes = createMockResponse();
@@ -118,8 +119,16 @@ describe("server api", () => {
     );
     expect(createRes.statusCode).toBe(201);
 
+    const listRes = createMockResponse();
+    await getProviders({ body: {}, params: {} }, listRes);
+    expect(listRes.statusCode).toBe(200);
+    const local = (
+      listRes.body as { providers: Array<{ id?: string; name: string }> }
+    ).providers.find((provider) => provider.name === "local");
+    expect(local?.id).toBeTruthy();
+
     const setCurrentRes = createMockResponse();
-    await postCurrent({ body: { name: "local" }, params: {} }, setCurrentRes);
+    await postCurrent({ body: { name: local?.id }, params: {} }, setCurrentRes);
     expect(setCurrentRes.statusCode).toBe(200);
 
     const settings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
