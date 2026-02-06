@@ -139,7 +139,7 @@ pnpm run release:publish
 - 实际发布包目录是 `packages/cli`。
 - 发布时会自动执行 `lint`、`test`，并在打包前自动构建 UI + CLI。
 - 如果启用了 2FA，`npm publish` 会提示输入 OTP。
-- `release:patch/minor/major` 会在 `packages/cli` 执行 `npm version`，自动创建 `vX.Y.Z` tag 并执行 `git push origin HEAD --follow-tags`。
+- `release:patch/minor/major` 会自动执行：版本号变更提交（commit）-> 创建 `vX.Y.Z` tag -> push 分支和 tag。
 
 ## 贡献
 
