@@ -168,11 +168,6 @@ program
       process.exitCode = 1;
       return;
     }
-    if (!options.model?.trim()) {
-      console.error("Model is required.");
-      process.exitCode = 1;
-      return;
-    }
     const config = await ensureConfig();
     const provider: ProviderConfig = {
       name,

@@ -104,9 +104,6 @@ export const assertValidProviderInput = (provider: ProviderConfig) => {
   if (!provider.authToken || !provider.authToken.trim()) {
     throw new Error("Auth token is required.");
   }
-  if (!provider.model || !provider.model.trim()) {
-    throw new Error("Model is required.");
-  }
   try {
     new URL(provider.baseUrl);
   } catch {
@@ -130,9 +127,6 @@ export const assertProviderHasAuthToken = (provider: ProviderConfig) => {
   }
   if (!provider.authToken || !provider.authToken.trim()) {
     throw new Error("Auth token is required to apply provider.");
-  }
-  if (!provider.model || !provider.model.trim()) {
-    throw new Error("Model is required to apply provider.");
   }
 };
 

@@ -125,11 +125,6 @@ export default function App() {
       return;
     }
 
-    if (!form.model?.trim()) {
-      setStatus({ type: "error", message: "Model is required." });
-      return;
-    }
-
     if (!isValidUrl(form.baseUrl?.trim())) {
       setStatus({ type: "error", message: "Base URL must be valid." });
       return;
@@ -268,7 +263,6 @@ export default function App() {
     const missing: string[] = [];
     if (!provider.baseUrl?.trim()) missing.push("Base URL");
     if (!provider.authToken?.trim()) missing.push("Auth Token");
-    if (!provider.model?.trim()) missing.push("Model");
     return missing;
   };
 
@@ -452,7 +446,7 @@ export default function App() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="model">
-                  Model <span className="text-coral-400">*</span>
+                  Model
                 </Label>
                 <Input
                   id="model"
@@ -462,7 +456,7 @@ export default function App() {
                   }
                   placeholder="claude-3-5-sonnet"
                 />
-                <p className="text-xs text-sand-200/70">必填。</p>
+                <p className="text-xs text-sand-200/70">选填。</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="website">官网</Label>

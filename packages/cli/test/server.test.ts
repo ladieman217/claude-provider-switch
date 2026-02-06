@@ -66,8 +66,7 @@ describe("server api", () => {
         body: {
           name: "local",
           baseUrl: "https://example.com",
-          authToken: "token",
-          model: "model"
+          authToken: "token"
         },
         params: {}
       },
@@ -111,8 +110,7 @@ describe("server api", () => {
         body: {
         name: "local",
         baseUrl: "https://example.com",
-        authToken: "token",
-        model: "model"
+        authToken: "token"
         },
         params: {}
       },
@@ -127,6 +125,47 @@ describe("server api", () => {
     const settings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
     expect(settings.env.ANTHROPIC_BASE_URL).toBe("https://example.com");
     expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("token");
-    expect(settings.env.ANTHROPIC_MODEL).toBe("model");
+    expect(settings.env.ANTHROPIC_MODEL).toBeUndefined();
+    expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
+    expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
+  });
+
+  it("does not keep nonessential traffic flag for anthropic preset", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const claudeDir = path.join(tempDir, "claude");
+    const claudeSettingsPath = path.join(claudeDir, "settings.json");
+
+    await fs.mkdir(claudeDir, { recursive: true });
+    await fs.writeFile(
+      claudeSettingsPath,
+      JSON.stringify(
+        {
+          env: {
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+            API_TIMEOUT_MS: "1000"
+          }
+        },
+        null,
+        2
+      )
+    );
+
+    const app = await createApp({
+      configDir,
+      configPath,
+      claudeDir,
+      claudeSettingsPath
+    });
+    const postCurrent = getRouteHandler(app, "post", "/api/current");
+
+    const setCurrentRes = createMockResponse();
+    await postCurrent({ body: { name: "anthropic" }, params: {} }, setCurrentRes);
+    expect(setCurrentRes.statusCode).toBe(200);
+
+    const settings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
+    expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBeUndefined();
+    expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
   });
 });

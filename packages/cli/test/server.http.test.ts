@@ -69,8 +69,7 @@ describeHttp("server http integration", () => {
         body: JSON.stringify({
           name: "local",
           baseUrl: "https://example.com",
-          authToken: "secret-token",
-          model: "test-model"
+          authToken: "secret-token"
         })
       });
       expect(createRes.status).toBe(201);
@@ -94,7 +93,9 @@ describeHttp("server http integration", () => {
       const settings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
       expect(settings.env.ANTHROPIC_BASE_URL).toBe("https://example.com");
       expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("secret-token");
-      expect(settings.env.ANTHROPIC_MODEL).toBe("test-model");
+      expect(settings.env.ANTHROPIC_MODEL).toBeUndefined();
+      expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
+      expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
     } finally {
       if (server.listening) {
         await new Promise<void>((resolve, reject) => {

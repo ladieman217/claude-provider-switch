@@ -176,6 +176,12 @@ export const applyProviderToClaudeSettings = async (
       delete env.ANTHROPIC_MODEL;
     }
   }
+  env.API_TIMEOUT_MS = "3000000";
+  if (isAnthropic) {
+    delete env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC;
+  } else {
+    env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
+  }
 
   const nextSettings = {
     ...settings,
