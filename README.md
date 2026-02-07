@@ -40,6 +40,11 @@ cps serve
 # 查看当前配置
 cps current
 
+# 查看版本
+cps version
+# 或
+cps --version
+
 # 列出所有 Provider
 cps list
 # 输出示例：* [anthropic] anthropic (...)
@@ -48,7 +53,7 @@ cps list
 cps select
 
 # 按 id 切换
-cps set anthropic
+cps use anthropic
 
 # 添加自定义 Provider
 cps add my-provider \
@@ -64,8 +69,9 @@ cps add my-provider \
 |------|------|
 | `cps list` | 列出所有配置的 Provider（显示 id + name） |
 | `cps current` | 显示当前使用的 Provider |
+| `cps version` | 显示当前 CLI 版本 |
 | `cps select` | 交互式选择并应用 Provider |
-| `cps set <id>` | 按 id 切换到指定的 Provider |
+| `cps use <id>` | 按 id 切换到指定的 Provider |
 | `cps add <name>` | 添加新的 Provider（可选 `--id` 指定稳定 id） |
 | `cps remove <name>` | 删除指定的 Provider |
 | `cps serve` | 启动 Web UI 服务 |

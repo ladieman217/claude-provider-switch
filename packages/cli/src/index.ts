@@ -2,6 +2,7 @@ import { Command } from "commander";
 import path from "path";
 import net from "net";
 import readline from "node:readline/promises";
+import packageJson from "../package.json";
 import {
   addProvider,
   assertProviderHasAuthToken,
@@ -77,6 +78,14 @@ const applyProviderById = async (id: string): Promise<ProviderConfig> => {
 };
 
 program.name("claude-provider").description("Claude provider switcher");
+program.version(packageJson.version, "-v, --version", "Show CLI version");
+
+program
+  .command("version")
+  .description("Show CLI version")
+  .action(() => {
+    console.log(packageJson.version);
+  });
 
 program
   .command("list")
@@ -111,9 +120,9 @@ program
   });
 
 program
-  .command("set")
+  .command("use")
   .argument("<id>", "Provider id")
-  .description("Set current provider by id and apply to Claude settings")
+  .description("Use provider by id and apply to Claude settings")
   .action(async (id: string) => {
     try {
       const provider = await applyProviderById(id);
