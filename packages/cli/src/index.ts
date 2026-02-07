@@ -8,7 +8,6 @@ import {
   assertProviderHasAuthToken,
   applyProviderToClaudeSettings,
   ensureConfig,
-  findProvider,
   findProviderById,
   removeProvider,
   saveConfig,
@@ -95,7 +94,7 @@ program
     const current = config.current;
 
     for (const provider of config.providers) {
-      const marker = provider.name === current ? "*" : " ";
+      const marker = provider.id === current ? "*" : " ";
       console.log(`${marker} ${formatProvider(provider)}`);
     }
   });
@@ -110,7 +109,7 @@ program
       return;
     }
 
-    const provider = findProvider(config, config.current);
+    const provider = findProviderById(config, config.current);
     if (!provider) {
       console.log("Current provider not found in config.");
       return;
@@ -152,7 +151,7 @@ program
 
     const current = config.current;
     config.providers.forEach((provider, index) => {
-      const marker = provider.name === current ? "*" : " ";
+      const marker = provider.id === current ? "*" : " ";
       console.log(`${index + 1}. ${marker} ${formatProvider(provider)}`);
     });
 

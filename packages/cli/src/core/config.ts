@@ -1,8 +1,8 @@
 import fs from "fs/promises";
-import path from "path";
 import { ConfigFile, PathsOptions, ProviderConfig } from "./types";
 import { DEFAULT_PRESETS } from "./presets";
 import { resolvePaths } from "./paths";
+import { readJsonFile, writeJsonFile } from "./fs";
 
 const CONFIG_VERSION = 1 as const;
 const PROVIDER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -61,28 +61,9 @@ const assertValidProviderId = (id: string) => {
 
 export const createDefaultConfig = (): ConfigFile => ({
   version: CONFIG_VERSION,
-  current: DEFAULT_PRESETS[0]?.name ?? null,
+  current: DEFAULT_PRESETS[0]?.id ?? null,
   providers: DEFAULT_PRESETS.map((provider) => ({ ...provider }))
 });
-
-const readJsonFile = async <T>(filePath: string): Promise<T> => {
-  const raw = await fs.readFile(filePath, "utf8");
-  return JSON.parse(raw) as T;
-};
-
-const ensureOwnerOnlyFile = async (filePath: string) => {
-  try {
-    await fs.chmod(filePath, 0o600);
-  } catch {
-    // Ignore chmod errors on unsupported platforms/filesystems.
-  }
-};
-
-const writeJsonFile = async (filePath: string, data: unknown) => {
-  const content = `${JSON.stringify(data, null, 2)}\n`;
-  await fs.writeFile(filePath, content, { encoding: "utf8", mode: 0o600 });
-  await ensureOwnerOnlyFile(filePath);
-};
 
 export const ensureConfig = async (options: PathsOptions = {}): Promise<ConfigFile> => {
   const { configDir, configPath } = resolvePaths(options);
@@ -142,7 +123,7 @@ export const normalizeConfig = (config: ConfigFile): ConfigFile => {
 
   return {
     version: CONFIG_VERSION,
-    current: config.current ? normalizeProviderName(config.current) : null,
+    current: config.current ? normalizeProviderId(config.current) : null,
     providers: providersWithIds
   };
 };
@@ -319,9 +300,10 @@ export const removeProvider = (config: ConfigFile, name: string): ConfigFile => 
     throw new Error(`Provider '${normalizedName}' not found.`);
   }
 
+  const removedId = target?.id;
   return {
     ...config,
-    current: config.current === normalizedName ? null : config.current,
+    current: removedId && config.current === removedId ? null : config.current,
     providers
   };
 };
@@ -334,7 +316,7 @@ export const setCurrentProvider = (config: ConfigFile, name: string): ConfigFile
 
   return {
     ...config,
-    current: provider.name
+    current: provider.id!
   };
 };
 
@@ -349,6 +331,6 @@ export const setCurrentProviderById = (
 
   return {
     ...config,
-    current: provider.name
+    current: provider.id!
   };
 };

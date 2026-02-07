@@ -280,7 +280,7 @@ export default function App() {
   };
 
   const currentProvider = useMemo(
-    () => providers.find((provider) => provider.name === current),
+    () => providers.find((provider) => provider.id === current),
     [providers, current]
   );
 
@@ -347,7 +347,7 @@ export default function App() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {providers.map((provider) => {
-                const isCurrent = provider.name === current;
+                const isCurrent = provider.id === current;
                 return (
                   <div
                     key={provider.name}

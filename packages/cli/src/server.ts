@@ -7,7 +7,7 @@ import {
   assertProviderHasAuthToken,
   applyProviderToClaudeSettings,
   ensureConfig,
-  findProvider,
+  findProviderById,
   findProviderByReference,
   listClaudeSettingsBackups,
   removeProvider,
@@ -59,11 +59,15 @@ export const createApp = async (
   app.use(express.json());
 
   app.get("/api/providers", async (_req, res) => {
-    const config = await loadConfig(options);
-    res.json({
-      providers: sanitizeProvidersForResponse(config.providers),
-      current: config.current
-    });
+    try {
+      const config = await loadConfig(options);
+      res.json({
+        providers: sanitizeProvidersForResponse(config.providers),
+        current: config.current
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.post("/api/providers", async (req, res) => {
@@ -107,19 +111,27 @@ export const createApp = async (
   });
 
   app.get("/api/current", async (_req, res) => {
-    const config = await loadConfig(options);
-    const provider = config.current
-      ? findProvider(config, config.current)
-      : undefined;
-    res.json({
-      current: config.current,
-      provider: provider ? sanitizeProviderForResponse(provider) : undefined
-    });
+    try {
+      const config = await loadConfig(options);
+      const provider = config.current
+        ? findProviderById(config, config.current)
+        : undefined;
+      res.json({
+        current: config.current,
+        provider: provider ? sanitizeProviderForResponse(provider) : undefined
+      });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.get("/api/backups", async (_req, res) => {
-    const backups = await listClaudeSettingsBackups(options);
-    res.json({ backups });
+    try {
+      const backups = await listClaudeSettingsBackups(options);
+      res.json({ backups });
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+    }
   });
 
   app.post("/api/backups/restore", async (req, res) => {

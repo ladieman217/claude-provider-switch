@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { resolvePaths } from "./paths";
 import { PathsOptions, ProviderConfig } from "./types";
+import { ensureOwnerOnlyFile, readJsonFile, writeJsonFile } from "./fs";
 
 const BACKUP_PREFIX = "settings.backup-";
 const BACKUP_NAME_PATTERN =
@@ -10,25 +11,6 @@ const BACKUP_NAME_PATTERN =
 export type ClaudeSettings = {
   env?: Record<string, string>;
   [key: string]: unknown;
-};
-
-const readJsonFile = async <T>(filePath: string): Promise<T> => {
-  const raw = await fs.readFile(filePath, "utf8");
-  return JSON.parse(raw) as T;
-};
-
-const ensureOwnerOnlyFile = async (filePath: string) => {
-  try {
-    await fs.chmod(filePath, 0o600);
-  } catch {
-    // Ignore chmod errors on unsupported platforms/filesystems.
-  }
-};
-
-const writeJsonFile = async (filePath: string, data: unknown) => {
-  const content = `${JSON.stringify(data, null, 2)}\n`;
-  await fs.writeFile(filePath, content, { encoding: "utf8", mode: 0o600 });
-  await ensureOwnerOnlyFile(filePath);
 };
 
 export const readClaudeSettings = async (
