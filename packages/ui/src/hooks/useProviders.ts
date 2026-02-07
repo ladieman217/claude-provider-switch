@@ -73,10 +73,14 @@ export function useProviders() {
 
   const removeProvider = useCallback(
     async (provider: Provider) => {
+      if (!provider.id) {
+        toast.error("Provider ID is missing.");
+        return false;
+      }
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/providers/${encodeURIComponent(provider.name)}`,
+          `/api/providers/${encodeURIComponent(provider.id)}`,
           {
             method: "DELETE",
           }
@@ -99,13 +103,13 @@ export function useProviders() {
   );
 
   const saveProvider = useCallback(
-    async (payload: Partial<Provider>, editingName?: string | null) => {
+    async (payload: Partial<Provider>, editingId?: string | null) => {
       setLoading(true);
       try {
-        const endpoint = editingName
-          ? `/api/providers/${encodeURIComponent(editingName)}`
+        const endpoint = editingId
+          ? `/api/providers/${encodeURIComponent(editingId)}`
           : "/api/providers";
-        const method = editingName ? "PUT" : "POST";
+        const method = editingId ? "PUT" : "POST";
 
         const response = await fetch(endpoint, {
           method,
@@ -119,7 +123,7 @@ export function useProviders() {
         }
 
         await fetchProviders();
-        toast.success(editingName ? "Provider 已更新" : "Provider 已创建");
+        toast.success(editingId ? "Provider 已更新" : "Provider 已创建");
         return true;
       } catch (error) {
         toast.error((error as Error).message);

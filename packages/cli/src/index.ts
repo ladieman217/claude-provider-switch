@@ -278,11 +278,33 @@ program
   .option("--port <port>", "Port", (value) => Number(value))
   .action(async (options: { port?: number }) => {
     const preferredPort = options.port ?? 8787;
+    
+    console.log("[cps] Starting Claude Provider Switcher...");
+    
     const port = await findAvailablePort(preferredPort, 20);
+    if (port !== preferredPort) {
+      console.log(`[cps] Port ${preferredPort} is in use, using port ${port}`);
+    }
+    
     const server = await startServer({ uiDistPath: defaultUiDist }, port);
 
     server.on("listening", () => {
-      console.log(`Server running at http://localhost:${port}`);
+      console.log("[cps] Server ready!");
+      console.log(`[cps] Local URL: http://localhost:${port}`);
+      console.log("[cps] Press Ctrl+C to stop");
+    });
+
+    server.on("error", (err) => {
+      console.error("[cps] Server error:", err.message);
+      process.exit(1);
+    });
+
+    process.on("SIGINT", () => {
+      console.log("\n[cps] Shutting down...");
+      server.close(() => {
+        console.log("[cps] Server stopped");
+        process.exit(0);
+      });
     });
   });
 

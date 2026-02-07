@@ -58,7 +58,7 @@ describe("server api", () => {
     const app = await createApp({ configDir, configPath });
     const postProviders = getRouteHandler(app, "post", "/api/providers");
     const getProviders = getRouteHandler(app, "get", "/api/providers");
-    const deleteProvider = getRouteHandler(app, "delete", "/api/providers/:name");
+    const deleteProvider = getRouteHandler(app, "delete", "/api/providers/:id");
 
     const createRes = createMockResponse();
     await postProviders(
@@ -84,7 +84,10 @@ describe("server api", () => {
     expect(listedLocal?.id).toBeTruthy();
 
     const deleteRes = createMockResponse();
-    await deleteProvider({ body: {}, params: { name: "local" } }, deleteRes);
+    await deleteProvider(
+      { body: {}, params: { id: listedLocal?.id } },
+      deleteRes
+    );
     expect(deleteRes.statusCode).toBe(200);
   });
 

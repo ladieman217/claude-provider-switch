@@ -37,8 +37,8 @@ export default function App() {
   }, []);
 
   const handleSubmit = useCallback(
-    async (payload: Partial<Provider>, editingName?: string | null) => {
-      const success = await saveProvider(payload, editingName);
+    async (payload: Partial<Provider>, editingId?: string | null) => {
+      const success = await saveProvider(payload, editingId);
       if (success) {
         setEditing(null);
       }
@@ -50,7 +50,7 @@ export default function App() {
   const handleDelete = useCallback(
     async (provider: Provider) => {
       await removeProvider(provider);
-      if (editing?.name === provider.name) {
+      if (editing?.id === provider.id) {
         setEditing(null);
       }
     },

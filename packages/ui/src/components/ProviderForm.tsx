@@ -10,7 +10,7 @@ import type { Provider, FormErrors } from "../types";
 interface ProviderFormProps {
   editing: Provider | null;
   loading: boolean;
-  onSubmit: (data: Partial<Provider>, editingName?: string | null) => void;
+  onSubmit: (data: Partial<Provider>, editingId?: string | null) => void;
   onCancel: () => void;
 }
 
@@ -137,7 +137,7 @@ export function ProviderForm({
       website: form.website?.trim() || "",
     };
 
-    onSubmit(payload, editing?.name);
+    onSubmit(payload, editing?.id);
   };
 
   const handleReset = () => {

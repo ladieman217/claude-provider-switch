@@ -10,13 +10,23 @@ import {
   findProviderById,
   findProviderByReference,
   listClaudeSettingsBackups,
-  removeProvider,
+  removeProviderById,
   restoreClaudeSettingsBackup,
   saveConfig,
   setCurrentProvider,
-  updateProvider
+  updateProviderById
 } from "./core";
 import type { PathsOptions, ProviderConfig } from "./core";
+
+// Logger utility
+const logger = {
+  info: (message: string) => console.log(`[cps] ${message}`),
+  error: (message: string) => console.error(`[cps] ${message}`),
+  request: (method: string, path: string, statusCode: number, duration: number) => {
+    const status = statusCode >= 400 ? "✗" : "✓";
+    console.log(`[cps] ${status} ${method} ${path} ${statusCode} (${duration}ms)`);
+  }
+};
 
 export type ServerOptions = PathsOptions & {
   uiDistPath?: string;
@@ -58,6 +68,16 @@ export const createApp = async (
   const app = express();
   app.use(express.json());
 
+  // Request logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      logger.request(req.method, req.path, res.statusCode, duration);
+    });
+    next();
+  });
+
   app.get("/api/providers", async (_req, res) => {
     try {
       const config = await loadConfig(options);
@@ -84,11 +104,11 @@ export const createApp = async (
     }
   });
 
-  app.put("/api/providers/:name", async (req, res) => {
+  app.put("/api/providers/:id", async (req, res) => {
     try {
       const config = await loadConfig(options);
       const updates = req.body as ProviderConfig;
-      const nextConfig = updateProvider(config, req.params.name, updates);
+      const nextConfig = updateProviderById(config, req.params.id, updates);
       await saveConfig(nextConfig, options);
       res.json({ providers: sanitizeProvidersForResponse(nextConfig.providers) });
     } catch (error) {
@@ -96,10 +116,10 @@ export const createApp = async (
     }
   });
 
-  app.delete("/api/providers/:name", async (req, res) => {
+  app.delete("/api/providers/:id", async (req, res) => {
     try {
       const config = await loadConfig(options);
-      const nextConfig = removeProvider(config, req.params.name);
+      const nextConfig = removeProviderById(config, req.params.id);
       await saveConfig(nextConfig, options);
       res.json({
         providers: sanitizeProvidersForResponse(nextConfig.providers),

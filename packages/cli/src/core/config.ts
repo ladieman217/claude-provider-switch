@@ -286,6 +286,47 @@ export const updateProvider = (
   };
 };
 
+export const updateProviderById = (
+  config: ConfigFile,
+  id: string,
+  updates: ProviderConfig
+): ConfigFile => {
+  const normalizedId = normalizeProviderId(id);
+  const target = findProviderById(config, normalizedId);
+  if (!target) {
+    throw new Error(`Provider '${normalizedId}' not found.`);
+  }
+  if (isAnthropicProvider(target) && target.preset) {
+    throw new Error("Anthropic preset is read-only.");
+  }
+
+  const nextAuthToken =
+    typeof updates.authToken === "string" && updates.authToken.trim()
+      ? updates.authToken
+      : target.authToken;
+
+  const updatedProvider: ProviderConfig = {
+    id: target.id,
+    name: target.name,
+    baseUrl: updates.baseUrl !== undefined ? updates.baseUrl : target.baseUrl,
+    authToken: nextAuthToken,
+    model: updates.model !== undefined ? updates.model : target.model,
+    website: updates.website !== undefined ? updates.website : target.website,
+    description:
+      updates.description !== undefined ? updates.description : target.description,
+    preset: target.preset
+  };
+
+  assertValidProviderInput(updatedProvider);
+
+  return {
+    ...config,
+    providers: config.providers.map((provider) =>
+      provider.id === normalizedId ? updatedProvider : provider
+    )
+  };
+};
+
 export const removeProvider = (config: ConfigFile, name: string): ConfigFile => {
   const normalizedName = normalizeProviderName(name);
   const target = findProvider(config, normalizedName);
@@ -304,6 +345,27 @@ export const removeProvider = (config: ConfigFile, name: string): ConfigFile => 
   return {
     ...config,
     current: removedId && config.current === removedId ? null : config.current,
+    providers
+  };
+};
+
+export const removeProviderById = (config: ConfigFile, id: string): ConfigFile => {
+  const normalizedId = normalizeProviderId(id);
+  const target = findProviderById(config, normalizedId);
+  if (target && isAnthropicProvider(target) && target.preset) {
+    throw new Error("Anthropic preset is read-only.");
+  }
+  const providers = config.providers.filter(
+    (provider) => provider.id !== normalizedId
+  );
+
+  if (providers.length === config.providers.length) {
+    throw new Error(`Provider '${normalizedId}' not found.`);
+  }
+
+  return {
+    ...config,
+    current: config.current === normalizedId ? null : config.current,
     providers
   };
 };
