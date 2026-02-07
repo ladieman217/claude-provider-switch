@@ -52,9 +52,9 @@ export type ClaudeSettingsBackup = {
   size: number;
 };
 
-const listBackups = async (claudeDir: string) => {
+const listBackups = async (backupDir: string) => {
   try {
-    const entries = await fs.readdir(claudeDir, { withFileTypes: true });
+    const entries = await fs.readdir(backupDir, { withFileTypes: true });
     return entries
       .filter(
         (entry) => entry.isFile() && entry.name.startsWith(BACKUP_PREFIX)
@@ -68,15 +68,15 @@ const listBackups = async (claudeDir: string) => {
   }
 };
 
-const pruneBackups = async (claudeDir: string, keep = 3) => {
-  const backups = await listBackups(claudeDir);
+const pruneBackups = async (backupDir: string, keep = 3) => {
+  const backups = await listBackups(backupDir);
   if (backups.length <= keep) {
     return;
   }
 
   const backupPaths = await Promise.all(
     backups.map(async (name) => {
-      const fullPath = path.join(claudeDir, name);
+      const fullPath = path.join(backupDir, name);
       const stat = await fs.stat(fullPath);
       return { name, fullPath, mtime: stat.mtimeMs };
     })
@@ -90,7 +90,7 @@ const pruneBackups = async (claudeDir: string, keep = 3) => {
 
 const backupClaudeSettings = async (
   claudeSettingsPath: string,
-  claudeDir: string
+  backupDir: string
 ) => {
   try {
     await fs.access(claudeSettingsPath);
@@ -100,22 +100,23 @@ const backupClaudeSettings = async (
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const backupName = `${BACKUP_PREFIX}${timestamp}.json`;
-  const backupPath = path.join(claudeDir, backupName);
+  const backupPath = path.join(backupDir, backupName);
 
+  await fs.mkdir(backupDir, { recursive: true, mode: 0o700 });
   await fs.copyFile(claudeSettingsPath, backupPath);
   await ensureOwnerOnlyFile(backupPath);
-  await pruneBackups(claudeDir, 3);
+  await pruneBackups(backupDir, 3);
 };
 
 export const listClaudeSettingsBackups = async (
   options: PathsOptions = {}
 ): Promise<ClaudeSettingsBackup[]> => {
-  const { claudeDir } = resolvePaths(options);
-  const names = await listBackups(claudeDir);
+  const { backupDir } = resolvePaths(options);
+  const names = await listBackups(backupDir);
 
   const backups = await Promise.all(
     names.map(async (name) => {
-      const fullPath = path.join(claudeDir, name);
+      const fullPath = path.join(backupDir, name);
       const stat = await fs.stat(fullPath);
       return { name, mtime: stat.mtimeMs, size: stat.size };
     })
@@ -132,16 +133,16 @@ export const restoreClaudeSettingsBackup = async (
     throw new Error("Invalid backup name.");
   }
 
-  const { claudeDir, claudeSettingsPath } = resolvePaths(options);
-  const resolvedClaudeDir = path.resolve(claudeDir);
-  const backupPath = path.resolve(claudeDir, name);
-  const relativePath = path.relative(resolvedClaudeDir, backupPath);
+  const { backupDir, claudeSettingsPath } = resolvePaths(options);
+  const resolvedBackupDir = path.resolve(backupDir);
+  const backupPath = path.resolve(backupDir, name);
+  const relativePath = path.relative(resolvedBackupDir, backupPath);
   if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
     throw new Error("Invalid backup path.");
   }
 
-  await fs.mkdir(claudeDir, { recursive: true, mode: 0o700 });
-  await backupClaudeSettings(claudeSettingsPath, claudeDir);
+  await fs.mkdir(backupDir, { recursive: true, mode: 0o700 });
+  await backupClaudeSettings(claudeSettingsPath, backupDir);
   await fs.copyFile(backupPath, claudeSettingsPath);
   await ensureOwnerOnlyFile(claudeSettingsPath);
 };
@@ -150,7 +151,7 @@ export const applyProviderToClaudeSettings = async (
   provider: ProviderConfig,
   options: PathsOptions = {}
 ): Promise<ClaudeSettings> => {
-  const { claudeDir, claudeSettingsPath } = resolvePaths(options);
+  const { claudeDir, backupDir, claudeSettingsPath } = resolvePaths(options);
 
   await fs.mkdir(claudeDir, { recursive: true, mode: 0o700 });
   const settings = await readClaudeSettings(options);
@@ -188,7 +189,7 @@ export const applyProviderToClaudeSettings = async (
     env
   };
 
-  await backupClaudeSettings(claudeSettingsPath, claudeDir);
+  await backupClaudeSettings(claudeSettingsPath, backupDir);
   await writeJsonFile(claudeSettingsPath, nextSettings);
 
   return nextSettings;

@@ -16,6 +16,10 @@ export const resolvePaths = (options: PathsOptions = {}) => {
     options.configDir ||
     process.env.CPS_CONFIG_DIR ||
     path.dirname(resolvedConfigPath);
+  const resolvedBackupDir =
+    options.backupDir ||
+    process.env.CPS_BACKUP_DIR ||
+    path.join(resolvedConfigDir, "backups");
 
   const fallbackClaudeDir = path.join(os.homedir(), ".claude");
   const resolvedClaudeSettingsPath =
@@ -30,6 +34,7 @@ export const resolvePaths = (options: PathsOptions = {}) => {
   return {
     configDir: resolvedConfigDir,
     configPath: resolvedConfigPath,
+    backupDir: resolvedBackupDir,
     claudeDir: resolvedClaudeDir,
     claudeSettingsPath: resolvedClaudeSettingsPath
   };

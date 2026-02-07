@@ -18,6 +18,7 @@ export type ConfigFile = {
 export type PathsOptions = {
   configDir?: string;
   configPath?: string;
+  backupDir?: string;
   claudeDir?: string;
   claudeSettingsPath?: string;
 };

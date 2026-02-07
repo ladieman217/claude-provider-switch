@@ -89,7 +89,7 @@ cps add my-provider \
 
 - **Provider 配置**：`~/.config/claude-provider-switch/config.json`
 - **Claude 设置**：`~/.claude/settings.json`
-- **备份文件**：`~/.claude/settings.backup-*.json`（保留最近 3 份）
+- **备份文件**：`~/.config/claude-provider-switch/backups/settings.backup-*.json`（保留最近 3 份）
 
 ### 环境变量
 
@@ -98,6 +98,7 @@ cps add my-provider \
 ```bash
 export CPS_CONFIG_PATH=/path/to/config.json
 export CPS_CONFIG_DIR=/path/to/config/dir
+export CPS_BACKUP_DIR=/path/to/backup/dir
 export CPS_CLAUDE_SETTINGS_PATH=/path/to/settings.json
 export CPS_CLAUDE_DIR=/path/to/claude/dir
 ```
