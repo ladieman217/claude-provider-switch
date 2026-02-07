@@ -321,15 +321,17 @@ export default function App() {
             并保留最近 3 份备份。
           </p>
           {currentProvider ? (
-            <div className="glass-panel flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
+            <div className="glass-panel flex flex-wrap items-center gap-4 rounded-2xl px-5 py-3">
               <Badge variant="success">当前</Badge>
               <span className="text-sm font-semibold text-sand-100">
                 {currentProvider.name}
               </span>
-              <span className="text-xs font-mono text-sand-200/70">
-                id: {currentProvider.id || "-"}
+              <span className="hidden h-4 w-px bg-sand-200/20 sm:block" />
+              <span className="text-xs font-mono text-sand-200/60">
+                {currentProvider.id || "-"}
               </span>
-              <span className="text-xs text-sand-200/70">
+              <span className="hidden h-4 w-px bg-sand-200/20 sm:block" />
+              <span className="text-xs text-sand-200/60 truncate max-w-xs">
                 {currentProvider.baseUrl || "未设置 Base URL"}
               </span>
             </div>
@@ -348,16 +350,21 @@ export default function App() {
             <CardContent className="flex flex-col gap-4">
               {providers.map((provider) => {
                 const isCurrent = provider.id === current;
+                const details = [
+                  provider.baseUrl,
+                  provider.model && `Model: ${provider.model}`,
+                  provider.website
+                ].filter(Boolean) as string[];
                 return (
                   <div
                     key={provider.name}
                     className={cn(
-                      "flex flex-col gap-3 rounded-xl border border-sand-200/10 bg-ink-800/60 p-4",
-                      isCurrent && "border-mint-400/40 shadow-glow"
+                      "group flex flex-col gap-3 rounded-xl border border-sand-200/10 bg-ink-800/60 p-4 transition-all duration-200 hover:border-sand-200/20 hover:bg-ink-800/80",
+                      isCurrent && "border-mint-400/40 shadow-glow hover:border-mint-400/50"
                     )}
                   >
                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-                      <div className="min-w-0 flex flex-col gap-2">
+                      <div className="min-w-0 flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <h3 className="break-words text-lg font-semibold leading-tight text-sand-100">
                             {provider.name}
@@ -365,24 +372,27 @@ export default function App() {
                           {isCurrent && <Badge variant="success">当前</Badge>}
                           {provider.preset && <Badge variant="outline">预设</Badge>}
                         </div>
-                        <p className="text-xs text-sand-200/70">
+                        <p className="text-xs text-sand-200/60">
                           {provider.description ||
                             provider.baseUrl ||
                             "尚未设置 Base URL"}
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 md:items-end">
-                        <span className="inline-flex max-w-full rounded-md border border-sand-200/20 px-2 py-0.5 font-mono text-xs text-sand-200/80">
-                          id: {provider.id || "-"}
-                        </span>
+                        {provider.id && (
+                          <span className="inline-flex max-w-full rounded-md border border-sand-200/15 px-2 py-0.5 font-mono text-xs text-sand-200/70">
+                            {provider.id}
+                          </span>
+                        )}
                         <div className="grid grid-cols-3 gap-2 md:flex md:flex-nowrap md:justify-end">
                         <Button
                           size="sm"
                           className="w-full md:w-auto"
+                          variant={isCurrent ? "outline" : "default"}
                           onClick={() => handleApply(provider)}
-                          disabled={loading || !canApply(provider) || !provider.id}
+                          disabled={loading || isCurrent || !canApply(provider) || !provider.id}
                         >
-                          应用
+                          {isCurrent ? "已应用" : "应用"}
                         </Button>
                         <Button
                           size="sm"
@@ -396,7 +406,7 @@ export default function App() {
                         <Button
                           size="sm"
                           className="w-full md:w-auto"
-                          variant="ghost"
+                          variant="destructive"
                           onClick={() => setDeleteTarget(provider)}
                           disabled={loading || isAnthropic(provider)}
                         >
@@ -405,22 +415,27 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="grid gap-2 text-xs text-sand-200/70">
-                      <span>Base URL: {provider.baseUrl || "-"}</span>
-                      <span>Website: {provider.website || "-"}</span>
-                      <span>Model: {provider.model || "-"}</span>
-                      {isAnthropic(provider) && (
-                        <span className="text-sand-200/80">
-                          使用 Claude Code /login 登录状态，配置由系统维护，无法编辑
-                        </span>
-                      )}
-                      {!canApply(provider) && (
-                        <span className="text-coral-400">
-                          缺少 {missingFields(provider).join(" / ")}，
-                          请点击“编辑”补充后再应用
-                        </span>
-                      )}
-                    </div>
+                    {(details.length > 0 || isAnthropic(provider) || !canApply(provider)) && (
+                      <div className="flex flex-col gap-1.5 border-t border-sand-200/10 pt-3 text-xs text-sand-200/50">
+                        {details.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sand-200/60">
+                            {details.map((d) => (
+                              <span key={d} className="truncate max-w-full">{d}</span>
+                            ))}
+                          </div>
+                        )}
+                        {isAnthropic(provider) && (
+                          <span className="text-sand-200/50 italic">
+                            使用 Claude Code /login 登录状态，配置由系统维护
+                          </span>
+                        )}
+                        {!canApply(provider) && (
+                          <span className="mt-1 rounded-md bg-coral-500/10 px-2 py-1 text-coral-400">
+                            缺少 {missingFields(provider).join(" / ")}，请点击"编辑"补充后再应用
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -458,10 +473,10 @@ export default function App() {
                   }
                   placeholder="例如 my-provider"
                 />
-                <p className="text-xs text-sand-200/70">
+                <p className="text-xs text-sand-200/50">
                   {editing
                     ? "创建后不可修改。"
-                    : "选填。仅支持小写字母、数字、-，最长 24 字符。"}
+                    : "选填，小写字母/数字/-，最长 24 位"}
                 </p>
               </div>
               <div className="space-y-2">
@@ -476,7 +491,6 @@ export default function App() {
                   }
                   placeholder="https://api.example.com"
                 />
-                <p className="text-xs text-sand-200/70">必填。</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="authToken">
@@ -492,19 +506,12 @@ export default function App() {
                   }
                   placeholder="sk-..."
                 />
-                <p className="text-xs text-sand-200/70">
-                  {editing ? "编辑时可留空。" : "必填，用于应用 Provider。"}
-                </p>
                 {editing && (
-                  <p className="text-xs text-sand-200/70">
-                    留空表示保持当前 token 不变。
-                  </p>
+                  <p className="text-xs text-sand-200/50">留空保持不变</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="model">
-                  Model
-                </Label>
+                <Label htmlFor="model">Model</Label>
                 <Input
                   id="model"
                   value={form.model}
@@ -513,7 +520,6 @@ export default function App() {
                   }
                   placeholder="claude-3-5-sonnet"
                 />
-                <p className="text-xs text-sand-200/70">选填。</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="website">官网</Label>
@@ -537,7 +543,7 @@ export default function App() {
                   placeholder="Provider 描述"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <Button onClick={handleSubmit} disabled={loading}>
                   {editing ? "保存" : "新增"}
                 </Button>
@@ -564,34 +570,40 @@ export default function App() {
               <CardHeader>
                 <CardTitle>Claude 设置备份</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3">
+              <CardContent className="flex flex-col gap-2">
                 {backups.length === 0 && (
-                  <p className="text-sm text-sand-200/70">暂无备份。</p>
+                  <p className="text-sm text-sand-200/50">暂无备份。</p>
                 )}
-                {backups.map((backup) => (
-                  <div
-                    key={backup.name}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sand-200/10 bg-ink-800/60 px-4 py-3"
-                  >
-                    <div className="flex flex-col gap-1 text-xs text-sand-200/70">
-                      <span className="font-mono text-sand-100">
-                        {backup.name}
-                      </span>
-                      <span>
-                        {new Date(backup.mtime).toLocaleString()} ·{" "}
-                        {Math.round(backup.size / 1024)} KB
-                      </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setRestoreTarget(backup)}
-                      disabled={loading}
+                {backups.map((backup) => {
+                  const date = new Date(backup.mtime);
+                  const timeStr = date.toLocaleString("zh-CN", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                  });
+                  return (
+                    <div
+                      key={backup.name}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-sand-200/10 bg-ink-800/50 px-3 py-2.5 transition-colors hover:bg-ink-800/70"
                     >
-                      恢复
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="font-mono text-sand-100">{timeStr}</span>
+                        <span className="text-sand-200/40">{Math.round(backup.size / 1024)} KB</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={() => setRestoreTarget(backup)}
+                        disabled={loading}
+                      >
+                        恢复
+                      </Button>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
@@ -619,6 +631,7 @@ export default function App() {
               取消
             </AlertDialogCancel>
             <AlertDialogAction
+              className="bg-coral-500 text-white hover:bg-coral-400"
               onClick={() => {
                 if (deleteTarget) {
                   handleRemove(deleteTarget);
