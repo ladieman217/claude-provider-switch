@@ -38,15 +38,16 @@ export const translations = {
     'list.cancel': '取消',
     'list.missingConfig': '缺少配置',
     'list.missingFields': '— 请点击编辑补充',
-    'list.anthropicNote': '使用 Claude Code /login 登录状态，配置由系统维护',
+    'list.anthropicNote': '使用你的 Claude 订阅，通过官方 API 访问',
     'list.model': '模型',
     'list.website': '官网',
     'list.copyUrl': '复制 URL',
+    'list.add': '添加',
 
     // Provider Form
     'form.addTitle': '新增 Provider',
     'form.editTitle': '编辑 Provider',
-    'form.templateTitle': '基于 {name} 创建新 Provider',
+    'form.editingHint': '正在编辑: {name}',
     'form.name': '名称',
     'form.nameRequired': 'Provider 名称不能为空',
     'form.id': 'ID',
@@ -67,6 +68,8 @@ export const translations = {
     'form.save': '保存',
     'form.add': '新增',
     'form.reset': '重置',
+    'form.clear': '清空',
+    'form.cancel': '取消',
 
     // Backup
     'backup.title': 'Claude 设置备份',
@@ -120,15 +123,16 @@ export const translations = {
     'list.cancel': 'Cancel',
     'list.missingConfig': 'Missing Configuration',
     'list.missingFields': '— Click edit to add',
-    'list.anthropicNote': 'Uses Claude Code /login status, configuration maintained by system',
+    'list.anthropicNote': 'Use your Claude subscription via official API',
     'list.model': 'Model',
     'list.website': 'Website',
     'list.copyUrl': 'Copy URL',
+    'list.add': 'Add',
 
     // Provider Form
     'form.addTitle': 'Add Provider',
     'form.editTitle': 'Edit Provider',
-    'form.templateTitle': 'Create from {name}',
+    'form.editingHint': 'Editing: {name}',
     'form.name': 'Name',
     'form.nameRequired': 'Provider name is required',
     'form.id': 'ID',
@@ -149,6 +153,8 @@ export const translations = {
     'form.save': 'Save',
     'form.add': 'Add',
     'form.reset': 'Reset',
+    'form.clear': 'Clear',
+    'form.cancel': 'Cancel',
 
     // Backup
     'backup.title': 'Claude Settings Backup',

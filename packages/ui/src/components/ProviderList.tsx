@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Trash2, AlertTriangle } from "lucide-react";
+import { Search, Trash2, AlertTriangle, Plus } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
@@ -26,6 +26,7 @@ interface ProviderListProps {
   onApply: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
+  onAdd: () => void;
   t: (key: string, params?: Record<string, string>) => string;
 }
 
@@ -39,6 +40,7 @@ export function ProviderList({
   onApply,
   onEdit,
   onDelete,
+  onAdd,
   t,
 }: ProviderListProps) {
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
@@ -56,14 +58,25 @@ export function ProviderList({
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle>{t('list.title')}</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sand-200/40" />
-              <Input
-                placeholder={t('list.search')}
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 h-9 w-full sm:w-[200px] text-sm bg-ink-800/50 border-sand-200/10"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sand-200/40" />
+                <Input
+                  placeholder={t('list.search')}
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-9 h-9 w-full sm:w-[200px] text-sm bg-ink-800/50 border-sand-200/10"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={onAdd}
+                disabled={loading}
+                className="h-9 px-3"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                {t('list.add')}
+              </Button>
             </div>
           </div>
         </CardHeader>

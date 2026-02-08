@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 import type { Provider, FormErrors } from "../types";
 
@@ -38,9 +39,6 @@ const isValidUrl = (value?: string) => {
 const isValidProviderId = (value: string) =>
   /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
-const isCustomProvider = (provider: Provider | null) =>
-  provider?.id === "custom";
-
 export function ProviderForm({
   editing,
   loading,
@@ -49,31 +47,31 @@ export function ProviderForm({
   t,
 }: ProviderFormProps) {
   const [form, setForm] = useState<Provider>(emptyForm);
+  const [originalForm, setOriginalForm] = useState<Provider | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-
-  // Check if using custom as template (create new provider from custom template)
-  const isTemplateMode = isCustomProvider(editing);
 
   // Sync form with editing prop
   useEffect(() => {
     if (editing) {
-      // Template mode: prefill all fields except name/id (user should enter new ones)
-      setForm({
-        id: isTemplateMode ? "" : (editing.id ?? ""),
-        name: isTemplateMode ? "" : editing.name,
+      const initialForm = {
+        id: editing.id ?? "",
+        name: editing.name,
         baseUrl: editing.baseUrl ?? "",
         authToken: "",
         model: editing.model ?? "",
         description: editing.description ?? "",
         website: editing.website ?? "",
-      });
+      };
+      setForm(initialForm);
+      setOriginalForm(initialForm);
     } else {
       setForm(emptyForm);
+      setOriginalForm(null);
     }
     setErrors({});
     setTouched({});
-  }, [editing, isTemplateMode]);
+  }, [editing]);
 
   const validate = useMemo(() => {
     const errs: FormErrors = {};
@@ -97,10 +95,6 @@ export function ProviderForm({
     }
 
     if (!editing && !form.authToken?.trim()) {
-      errs.authToken = t('form.authTokenRequired');
-    }
-    // Template mode also requires auth token (since it's creating new provider)
-    if (isTemplateMode && !form.authToken?.trim()) {
       errs.authToken = t('form.authTokenRequired');
     }
 
@@ -150,27 +144,55 @@ export function ProviderForm({
       website: form.website?.trim() || "",
     };
 
-    // Template mode: create new provider (don't pass editingId)
-    onSubmit(payload, isTemplateMode ? undefined : editing?.id);
+    onSubmit(payload, editing?.id);
   };
 
   const handleReset = () => {
+    if (editing && originalForm) {
+      // 编辑状态下重置为原始值
+      setForm(originalForm);
+    } else {
+      // 新增状态下清空表单
+      setForm(emptyForm);
+    }
+    setErrors({});
+    setTouched({});
+  };
+
+  const handleCancel = () => {
     setForm(emptyForm);
+    setOriginalForm(null);
     setErrors({});
     setTouched({});
     onCancel();
   };
 
+  const hasChanges = editing && originalForm && (
+    form.baseUrl !== originalForm.baseUrl ||
+    form.model !== originalForm.model ||
+    form.website !== originalForm.website ||
+    form.description !== originalForm.description ||
+    form.authToken !== originalForm.authToken
+  );
+
   return (
     <Card className="animate-slide-up">
       <CardHeader>
-        <CardTitle>
-          {isTemplateMode 
-            ? t('form.templateTitle', { name: editing?.name ?? '' }) 
-            : editing 
-              ? t('form.editTitle') 
-              : t('form.addTitle')}
-        </CardTitle>
+        <div className="flex items-center gap-3">
+          <CardTitle>
+            {editing ? t('form.editTitle') : t('form.addTitle')}
+          </CardTitle>
+          {editing && (
+            <Badge variant="outline" className="text-blue-400 border-blue-400/30 bg-blue-400/10">
+              {editing.name}
+            </Badge>
+          )}
+        </div>
+        {editing && (
+          <p className="text-sm text-sand-200/50 mt-1">
+            {t('form.editingHint', { name: editing.name })}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="space-y-2">
@@ -180,7 +202,7 @@ export function ProviderForm({
           <Input
             id="name"
             value={form.name}
-            disabled={Boolean(editing) && !isCustomProvider(editing)}
+            disabled={Boolean(editing)}
             onChange={(e) => handleChange("name", e.target.value)}
             onBlur={() => handleBlur("name")}
             placeholder={editing ? "" : "e.g. custom"}
@@ -190,29 +212,6 @@ export function ProviderForm({
           />
           {touched.name && errors.name && (
             <p className="text-xs text-coral-400">{errors.name}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="id">ID</Label>
-          <Input
-            id="id"
-            value={form.id}
-            disabled={Boolean(editing) && !isCustomProvider(editing)}
-            onChange={(e) => handleChange("id", e.target.value)}
-            onBlur={() => handleBlur("id")}
-            placeholder={editing ? "" : "e.g. my-provider"}
-            className={cn(
-              touched.id && errors.id && "border-coral-400 focus-visible:ring-coral-400/50"
-            )}
-          />
-          <p className="text-xs text-sand-200/50">
-            {editing && !isCustomProvider(editing)
-              ? t('form.idEditHint')
-              : t('form.idHint')}
-          </p>
-          {touched.id && errors.id && (
-            <p className="text-xs text-coral-400">{errors.id}</p>
           )}
         </div>
 
@@ -237,7 +236,7 @@ export function ProviderForm({
 
         <div className="space-y-2">
           <Label htmlFor="authToken">
-            Auth Token {(!editing || isTemplateMode) && <span className="text-coral-400">*</span>}
+            Auth Token {!editing && <span className="text-coral-400">*</span>}
           </Label>
           <Input
             id="authToken"
@@ -250,7 +249,7 @@ export function ProviderForm({
               touched.authToken && errors.authToken && "border-coral-400 focus-visible:ring-coral-400/50"
             )}
           />
-          {editing && !isTemplateMode && (
+          {editing && (
             <p className="text-xs text-sand-200/50">{t('form.authTokenHint')}</p>
           )}
           {touched.authToken && errors.authToken && (
@@ -296,13 +295,39 @@ export function ProviderForm({
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="id">ID</Label>
+          <Input
+            id="id"
+            value={form.id}
+            disabled={Boolean(editing)}
+            onChange={(e) => handleChange("id", e.target.value)}
+            onBlur={() => handleBlur("id")}
+            placeholder={editing ? "" : "e.g. my-provider"}
+            className={cn(
+              touched.id && errors.id && "border-coral-400 focus-visible:ring-coral-400/50"
+            )}
+          />
+          <p className="text-xs text-sand-200/50">
+            {editing ? t('form.idEditHint') : t('form.idHint')}
+          </p>
+          {touched.id && errors.id && (
+            <p className="text-xs text-coral-400">{errors.id}</p>
+          )}
+        </div>
+
         <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={handleSubmit} loading={loading} disabled={!isValid}>
-            {editing && !isTemplateMode ? t('form.save') : t('form.add')}
+            {editing ? t('form.save') : t('form.add')}
           </Button>
           <Button variant="outline" onClick={handleReset} disabled={loading}>
-            {t('form.reset')}
+            {editing ? t('form.reset') : t('form.clear')}
           </Button>
+          {editing && (
+            <Button variant="ghost" onClick={handleCancel} disabled={loading}>
+              {t('form.cancel')}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

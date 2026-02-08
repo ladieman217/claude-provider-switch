@@ -39,6 +39,10 @@ export default function App() {
     setEditing(null);
   }, []);
 
+  const handleAdd = useCallback(() => {
+    setEditing(null);
+  }, []);
+
   const handleSubmit = useCallback(
     async (payload: Partial<Provider>, editingId?: string | null) => {
       const success = await saveProvider(payload, editingId);
@@ -85,6 +89,7 @@ export default function App() {
             onApply={applyProvider}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onAdd={handleAdd}
             t={t}
           />
 

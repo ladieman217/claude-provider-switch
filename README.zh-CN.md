@@ -109,7 +109,6 @@ echo "sk-xxx" | cps add my-provider \
 | `anthropic` | 官方 API，需先运行 `claude code /login` 登录 |
 | `智谱Coding Plan` | 智谱 AI 的 Coding 套餐 |
 | `火山方舟Coding Plan` | 火山方舟的 Coding 套餐 |
-| `custom` | 占位配置，可自行修改为自定义 Provider |
 
 ## 配置说明
 

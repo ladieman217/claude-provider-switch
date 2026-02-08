@@ -35,18 +35,9 @@ export function useProviders(options: UseProvidersOptions) {
   );
 
   const filteredProviders = useMemo(() => {
-    // Sort: custom provider always at the end
-    const sortedProviders = [...providers].sort((a, b) => {
-      const isACustom = a.id === "custom";
-      const isBCustom = b.id === "custom";
-      if (isACustom) return 1;
-      if (isBCustom) return -1;
-      return 0;
-    });
-
-    if (!search.trim()) return sortedProviders;
+    if (!search.trim()) return providers;
     const query = search.toLowerCase();
-    return sortedProviders.filter(
+    return providers.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.id?.toLowerCase().includes(query) ||

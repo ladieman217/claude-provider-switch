@@ -8,7 +8,7 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     authToken: "",
     model: "",
     preset: true,
-    description: "Official Anthropic API",
+    description: "Use your Claude subscription via official API",
     website: "https://www.anthropic.com",
   },
   {
@@ -31,14 +31,19 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     description: "火山方舟 coding plan anthropic compatible endpoint",
     website: "https://www.volcengine.com",
   },
-  {
-    id: "custom",
-    name: "custom",
-    baseUrl: "",
-    authToken: "",
-    model: "",
-    preset: true,
-    description: "Custom endpoint",
-    website: "",
-  },
 ];
+
+/**
+ * Template for creating a new custom provider.
+ * This is not a real preset, just a template used when adding custom providers.
+ */
+export const CUSTOM_PROVIDER_TEMPLATE: ProviderConfig = {
+  id: "",
+  name: "",
+  baseUrl: "",
+  authToken: "",
+  model: "",
+  preset: false,
+  description: "",
+  website: "",
+};

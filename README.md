@@ -111,7 +111,6 @@ On first run, the following presets are automatically created:
 | `anthropic` | Official API, run `claude code /login` first |
 | `智谱Coding Plan` | Zhipu AI Coding Plan |
 | `火山方舟Coding Plan` | Volcengine Ark Coding Plan |
-| `custom` | Placeholder for custom configuration |
 
 ## Configuration
 
