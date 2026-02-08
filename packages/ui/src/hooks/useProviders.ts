@@ -35,9 +35,18 @@ export function useProviders(options: UseProvidersOptions) {
   );
 
   const filteredProviders = useMemo(() => {
-    if (!search.trim()) return providers;
+    // Sort: custom provider always at the end
+    const sortedProviders = [...providers].sort((a, b) => {
+      const isACustom = a.id === "custom";
+      const isBCustom = b.id === "custom";
+      if (isACustom) return 1;
+      if (isBCustom) return -1;
+      return 0;
+    });
+
+    if (!search.trim()) return sortedProviders;
     const query = search.toLowerCase();
-    return providers.filter(
+    return sortedProviders.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.id?.toLowerCase().includes(query) ||

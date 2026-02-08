@@ -46,6 +46,7 @@ export const translations = {
     // Provider Form
     'form.addTitle': '新增 Provider',
     'form.editTitle': '编辑 Provider',
+    'form.templateTitle': '基于 {name} 创建新 Provider',
     'form.name': '名称',
     'form.nameRequired': 'Provider 名称不能为空',
     'form.id': 'ID',
@@ -127,6 +128,7 @@ export const translations = {
     // Provider Form
     'form.addTitle': 'Add Provider',
     'form.editTitle': 'Edit Provider',
+    'form.templateTitle': 'Create from {name}',
     'form.name': 'Name',
     'form.nameRequired': 'Provider name is required',
     'form.id': 'ID',

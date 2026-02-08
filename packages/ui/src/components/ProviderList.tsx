@@ -19,6 +19,7 @@ import type { Provider } from "../types";
 interface ProviderListProps {
   providers: Provider[];
   current: string | null;
+  editing: Provider | null;
   loading: boolean;
   search: string;
   onSearchChange: (value: string) => void;
@@ -31,6 +32,7 @@ interface ProviderListProps {
 export function ProviderList({
   providers,
   current,
+  editing,
   loading,
   search,
   onSearchChange,
@@ -40,6 +42,13 @@ export function ProviderList({
   t,
 }: ProviderListProps) {
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
+  
+  // Sync selected state with editing state
+  const selectedId = editing?.id ?? null;
+
+  const handleEdit = (provider: Provider) => {
+    onEdit(provider);
+  };
 
   return (
     <>
@@ -76,6 +85,7 @@ export function ProviderList({
                 <ProviderCard
                   provider={provider}
                   isCurrent={provider.id === current}
+                  isSelected={provider.id === selectedId}
                   loading={loading}
                   onApply={onApply}
                   onEdit={onEdit}

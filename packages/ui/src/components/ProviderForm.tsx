@@ -38,6 +38,9 @@ const isValidUrl = (value?: string) => {
 const isValidProviderId = (value: string) =>
   /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
+const isCustomProvider = (provider: Provider | null) =>
+  provider?.id === "custom";
+
 export function ProviderForm({
   editing,
   loading,
@@ -49,12 +52,16 @@ export function ProviderForm({
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // Check if using custom as template (create new provider from custom template)
+  const isTemplateMode = isCustomProvider(editing);
+
   // Sync form with editing prop
   useEffect(() => {
     if (editing) {
+      // Template mode: prefill all fields except name/id (user should enter new ones)
       setForm({
-        id: editing.id ?? "",
-        name: editing.name,
+        id: isTemplateMode ? "" : (editing.id ?? ""),
+        name: isTemplateMode ? "" : editing.name,
         baseUrl: editing.baseUrl ?? "",
         authToken: "",
         model: editing.model ?? "",
@@ -66,7 +73,7 @@ export function ProviderForm({
     }
     setErrors({});
     setTouched({});
-  }, [editing]);
+  }, [editing, isTemplateMode]);
 
   const validate = useMemo(() => {
     const errs: FormErrors = {};
@@ -90,6 +97,10 @@ export function ProviderForm({
     }
 
     if (!editing && !form.authToken?.trim()) {
+      errs.authToken = t('form.authTokenRequired');
+    }
+    // Template mode also requires auth token (since it's creating new provider)
+    if (isTemplateMode && !form.authToken?.trim()) {
       errs.authToken = t('form.authTokenRequired');
     }
 
@@ -139,7 +150,8 @@ export function ProviderForm({
       website: form.website?.trim() || "",
     };
 
-    onSubmit(payload, editing?.id);
+    // Template mode: create new provider (don't pass editingId)
+    onSubmit(payload, isTemplateMode ? undefined : editing?.id);
   };
 
   const handleReset = () => {
@@ -152,7 +164,13 @@ export function ProviderForm({
   return (
     <Card className="animate-slide-up">
       <CardHeader>
-        <CardTitle>{editing ? t('form.editTitle') : t('form.addTitle')}</CardTitle>
+        <CardTitle>
+          {isTemplateMode 
+            ? t('form.templateTitle', { name: editing?.name }) 
+            : editing 
+              ? t('form.editTitle') 
+              : t('form.addTitle')}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="space-y-2">
@@ -162,7 +180,7 @@ export function ProviderForm({
           <Input
             id="name"
             value={form.name}
-            disabled={Boolean(editing)}
+            disabled={Boolean(editing) && !isCustomProvider(editing)}
             onChange={(e) => handleChange("name", e.target.value)}
             onBlur={() => handleBlur("name")}
             placeholder={editing ? "" : "e.g. custom"}
@@ -180,7 +198,7 @@ export function ProviderForm({
           <Input
             id="id"
             value={form.id}
-            disabled={Boolean(editing)}
+            disabled={Boolean(editing) && !isCustomProvider(editing)}
             onChange={(e) => handleChange("id", e.target.value)}
             onBlur={() => handleBlur("id")}
             placeholder={editing ? "" : "e.g. my-provider"}
@@ -189,7 +207,7 @@ export function ProviderForm({
             )}
           />
           <p className="text-xs text-sand-200/50">
-            {editing
+            {editing && !isCustomProvider(editing)
               ? t('form.idEditHint')
               : t('form.idHint')}
           </p>
@@ -219,7 +237,7 @@ export function ProviderForm({
 
         <div className="space-y-2">
           <Label htmlFor="authToken">
-            Auth Token {!editing && <span className="text-coral-400">*</span>}
+            Auth Token {(!editing || isTemplateMode) && <span className="text-coral-400">*</span>}
           </Label>
           <Input
             id="authToken"
@@ -232,7 +250,7 @@ export function ProviderForm({
               touched.authToken && errors.authToken && "border-coral-400 focus-visible:ring-coral-400/50"
             )}
           />
-          {editing && (
+          {editing && !isTemplateMode && (
             <p className="text-xs text-sand-200/50">{t('form.authTokenHint')}</p>
           )}
           {touched.authToken && errors.authToken && (
@@ -280,7 +298,7 @@ export function ProviderForm({
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={handleSubmit} loading={loading} disabled={!isValid}>
-            {editing ? t('form.save') : t('form.add')}
+            {editing && !isTemplateMode ? t('form.save') : t('form.add')}
           </Button>
           <Button variant="outline" onClick={handleReset} disabled={loading}>
             {t('form.reset')}

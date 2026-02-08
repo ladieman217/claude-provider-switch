@@ -78,6 +78,7 @@ export default function App() {
           <ProviderList
             providers={filteredProviders}
             current={current}
+            editing={editing}
             loading={loading}
             search={search}
             onSearchChange={setSearch}

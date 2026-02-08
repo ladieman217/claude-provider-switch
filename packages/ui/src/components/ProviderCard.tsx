@@ -9,6 +9,7 @@ import type { Provider } from "../types";
 interface ProviderCardProps {
   provider: Provider;
   isCurrent: boolean;
+  isSelected?: boolean;
   loading: boolean;
   onApply: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
@@ -18,6 +19,9 @@ interface ProviderCardProps {
 
 const isAnthropic = (provider: Provider) =>
   provider.name.trim().toLowerCase() === "anthropic";
+
+const isCustom = (provider: Provider) =>
+  provider.id === "custom";
 
 const missingFields = (provider: Provider) => {
   if (isAnthropic(provider)) return [];
@@ -65,6 +69,7 @@ function CopyButton({ text, t }: CopyButtonProps) {
 export function ProviderCard({
   provider,
   isCurrent,
+  isSelected,
   loading,
   onApply,
   onEdit,
@@ -75,20 +80,31 @@ export function ProviderCard({
   const hasDetails = Boolean(provider.baseUrl || provider.model || provider.website);
 
   const missing = missingFields(provider);
-  const isPreset = provider.preset;
+  const isPreset = provider.preset && !isCustom(provider);
   const isAnthropicProvider = isAnthropic(provider);
+
+  // Click card to edit (except for anthropic preset which is read-only)
+  const handleCardClick = () => {
+    if (!isAnthropicProvider) {
+      onEdit(provider);
+    }
+  };
 
   return (
     <div
+      onClick={handleCardClick}
       className={cn(
         "group relative flex flex-col gap-3 rounded-xl border p-4 transition-all duration-300",
         "border-sand-200/10 bg-ink-800/60 hover:border-sand-200/20 hover:bg-ink-800/80",
-        isCurrent &&
-          "border-mint-500/40 bg-mint-500/[0.03] shadow-[0_0_30px_rgba(52,211,153,0.1)] hover:border-mint-500/50"
+        !isAnthropicProvider && "cursor-pointer",
+        isSelected &&
+          "border-mint-500/40 bg-mint-500/[0.03] shadow-[0_0_30px_rgba(52,211,153,0.1)] hover:border-mint-500/50",
+        isCurrent && !isSelected &&
+          "border-mint-500/20 hover:border-mint-500/30"
       )}
     >
-      {/* Current indicator */}
-      {isCurrent && (
+      {/* Selected indicator */}
+      {isSelected && (
         <div className="absolute -left-px top-4 bottom-4 w-1 rounded-r-full bg-mint-500 shadow-glow-sm" />
       )}
 
@@ -121,7 +137,10 @@ export function ProviderCard({
             <Button
               size="sm"
               variant={isCurrent ? "outline" : "default"}
-              onClick={() => onApply(provider)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApply(provider);
+              }}
               disabled={loading || isCurrent || !canApply(provider) || !provider.id}
               className="h-8"
             >
@@ -137,7 +156,10 @@ export function ProviderCard({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => onEdit(provider)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(provider);
+              }}
               disabled={loading || isAnthropicProvider}
               className="h-8 w-8"
               title={t('list.edit')}
@@ -147,8 +169,11 @@ export function ProviderCard({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => onDelete(provider)}
-              disabled={loading || isAnthropicProvider}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(provider);
+              }}
+              disabled={loading || isAnthropicProvider || isCustom(provider)}
               className="h-8 w-8 text-coral-400 hover:text-coral-400 hover:bg-coral-500/10"
               title={t('list.delete')}
             >
