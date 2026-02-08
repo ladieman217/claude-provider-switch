@@ -166,7 +166,7 @@ export function ProviderForm({
       <CardHeader>
         <CardTitle>
           {isTemplateMode 
-            ? t('form.templateTitle', { name: editing?.name }) 
+            ? t('form.templateTitle', { name: editing?.name ?? '' }) 
             : editing 
               ? t('form.editTitle') 
               : t('form.addTitle')}
