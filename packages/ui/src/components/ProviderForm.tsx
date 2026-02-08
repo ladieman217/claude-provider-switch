@@ -12,6 +12,7 @@ interface ProviderFormProps {
   loading: boolean;
   onSubmit: (data: Partial<Provider>, editingId?: string | null) => void;
   onCancel: () => void;
+  t: (key: string, params?: Record<string, string>) => string;
 }
 
 const emptyForm: Provider = {
@@ -42,6 +43,7 @@ export function ProviderForm({
   loading,
   onSubmit,
   onCancel,
+  t,
 }: ProviderFormProps) {
   const [form, setForm] = useState<Provider>(emptyForm);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -70,33 +72,33 @@ export function ProviderForm({
     const errs: FormErrors = {};
 
     if (!form.name.trim()) {
-      errs.name = "Provider 名称不能为空";
+      errs.name = t('form.nameRequired');
     }
 
     if (form.id?.trim()) {
       if (form.id.length > 24) {
-        errs.id = "ID 最多 24 个字符";
+        errs.id = t('form.idTooLong');
       } else if (!isValidProviderId(form.id)) {
-        errs.id = "只能使用小写字母、数字和连字符";
+        errs.id = t('form.idInvalid');
       }
     }
 
     if (!form.baseUrl?.trim()) {
-      errs.baseUrl = "Base URL 不能为空";
+      errs.baseUrl = t('form.baseUrlRequired');
     } else if (!isValidUrl(form.baseUrl)) {
-      errs.baseUrl = "请输入有效的 URL";
+      errs.baseUrl = t('form.baseUrlInvalid');
     }
 
     if (!editing && !form.authToken?.trim()) {
-      errs.authToken = "Auth Token 不能为空";
+      errs.authToken = t('form.authTokenRequired');
     }
 
     if (form.website?.trim() && !isValidUrl(form.website)) {
-      errs.website = "请输入有效的 URL";
+      errs.website = t('form.websiteInvalid');
     }
 
     return errs;
-  }, [form, editing]);
+  }, [form, editing, t]);
 
   const isValid = Object.keys(validate).length === 0;
 
@@ -150,12 +152,12 @@ export function ProviderForm({
   return (
     <Card className="animate-slide-up">
       <CardHeader>
-        <CardTitle>{editing ? "编辑 Provider" : "新增 Provider"}</CardTitle>
+        <CardTitle>{editing ? t('form.editTitle') : t('form.addTitle')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">
-            名称 <span className="text-coral-400">*</span>
+            {t('form.name')} <span className="text-coral-400">*</span>
           </Label>
           <Input
             id="name"
@@ -163,7 +165,7 @@ export function ProviderForm({
             disabled={Boolean(editing)}
             onChange={(e) => handleChange("name", e.target.value)}
             onBlur={() => handleBlur("name")}
-            placeholder="例如 custom"
+            placeholder={editing ? "" : "e.g. custom"}
             className={cn(
               touched.name && errors.name && "border-coral-400 focus-visible:ring-coral-400/50"
             )}
@@ -181,15 +183,15 @@ export function ProviderForm({
             disabled={Boolean(editing)}
             onChange={(e) => handleChange("id", e.target.value)}
             onBlur={() => handleBlur("id")}
-            placeholder="例如 my-provider"
+            placeholder={editing ? "" : "e.g. my-provider"}
             className={cn(
               touched.id && errors.id && "border-coral-400 focus-visible:ring-coral-400/50"
             )}
           />
           <p className="text-xs text-sand-200/50">
             {editing
-              ? "创建后不可修改"
-              : "选填，小写字母/数字/-，最长 24 位"}
+              ? t('form.idEditHint')
+              : t('form.idHint')}
           </p>
           {touched.id && errors.id && (
             <p className="text-xs text-coral-400">{errors.id}</p>
@@ -231,7 +233,7 @@ export function ProviderForm({
             )}
           />
           {editing && (
-            <p className="text-xs text-sand-200/50">留空保持不变</p>
+            <p className="text-xs text-sand-200/50">{t('form.authTokenHint')}</p>
           )}
           {touched.authToken && errors.authToken && (
             <p className="text-xs text-coral-400">{errors.authToken}</p>
@@ -239,7 +241,7 @@ export function ProviderForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="model">Model</Label>
+          <Label htmlFor="model">{t('form.model')}</Label>
           <Input
             id="model"
             value={form.model}
@@ -249,7 +251,7 @@ export function ProviderForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="website">官网</Label>
+          <Label htmlFor="website">{t('form.website')}</Label>
           <Input
             id="website"
             value={form.website}
@@ -266,22 +268,22 @@ export function ProviderForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">描述</Label>
+          <Label htmlFor="description">{t('form.description')}</Label>
           <Textarea
             id="description"
             value={form.description}
             onChange={(e) => handleChange("description", e.target.value)}
-            placeholder="Provider 描述"
+            placeholder={editing ? "" : "Provider description"}
             rows={3}
           />
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button onClick={handleSubmit} loading={loading} disabled={!isValid}>
-            {editing ? "保存" : "新增"}
+            {editing ? t('form.save') : t('form.add')}
           </Button>
           <Button variant="outline" onClick={handleReset} disabled={loading}>
-            重置
+            {t('form.reset')}
           </Button>
         </div>
       </CardContent>

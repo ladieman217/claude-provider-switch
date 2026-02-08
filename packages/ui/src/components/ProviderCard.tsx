@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Pencil, Trash2, ExternalLink, Link2, Copy, CheckIcon } from "lucide-react";
+import { Check, Pencil, Trash2, ExternalLink, Copy, CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -13,6 +13,7 @@ interface ProviderCardProps {
   onApply: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
+  t: (key: string, params?: Record<string, string>) => string;
 }
 
 const isAnthropic = (provider: Provider) =>
@@ -29,27 +30,32 @@ const missingFields = (provider: Provider) => {
 const canApply = (provider: Provider) =>
   isAnthropic(provider) || missingFields(provider).length === 0;
 
-function CopyButton({ text }: { text: string }) {
+interface CopyButtonProps {
+  text: string;
+  t: (key: string, params?: Record<string, string>) => string;
+}
+
+function CopyButton({ text, t }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("已复制到剪贴板");
+      toast.success(t('toast.copied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("复制失败");
+      toast.error(t('toast.copyFailed'));
     }
   };
-  
+
   return (
     <button
       onClick={handleCopy}
       className="inline-flex items-center justify-center p-1 rounded hover:bg-sand-200/10 text-sand-200/40 hover:text-sand-200/80 transition-colors"
-      title="复制 URL"
+      title={t('list.copyUrl')}
     >
       {copied ? <CheckIcon className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
     </button>
@@ -63,12 +69,10 @@ export function ProviderCard({
   onApply,
   onEdit,
   onDelete,
+  t,
 }: ProviderCardProps) {
-  const details = [
-    provider.baseUrl,
-    provider.model && `Model: ${provider.model}`,
-    provider.website,
-  ].filter(Boolean) as string[];
+  // Check if there are any details to display
+  const hasDetails = Boolean(provider.baseUrl || provider.model || provider.website);
 
   const missing = missingFields(provider);
   const isPreset = provider.preset;
@@ -97,13 +101,13 @@ export function ProviderCard({
             {isCurrent && (
               <Badge variant="success" className="shrink-0">
                 <Check className="w-3 h-3 mr-1" />
-                当前
+                {t('list.current')}
               </Badge>
             )}
-            {isPreset && <Badge variant="outline">预设</Badge>}
+            {isPreset && <Badge variant="outline">{t('list.preset')}</Badge>}
           </div>
           <p className="text-sm text-sand-200/50 line-clamp-2">
-            {provider.description || provider.baseUrl || "尚未设置 Base URL"}
+            {provider.description || provider.baseUrl || t('list.empty')}
           </p>
         </div>
 
@@ -124,10 +128,10 @@ export function ProviderCard({
               {isCurrent ? (
                 <>
                   <Check className="w-3.5 h-3.5 mr-1" />
-                  已应用
+                  {t('list.applied')}
                 </>
               ) : (
-                "应用"
+                t('list.apply')
               )}
             </Button>
             <Button
@@ -136,7 +140,7 @@ export function ProviderCard({
               onClick={() => onEdit(provider)}
               disabled={loading || isAnthropicProvider}
               className="h-8 w-8"
-              title="编辑"
+              title={t('list.edit')}
             >
               <Pencil className="w-4 h-4" />
             </Button>
@@ -146,7 +150,7 @@ export function ProviderCard({
               onClick={() => onDelete(provider)}
               disabled={loading || isAnthropicProvider}
               className="h-8 w-8 text-coral-400 hover:text-coral-400 hover:bg-coral-500/10"
-              title="删除"
+              title={t('list.delete')}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -155,29 +159,29 @@ export function ProviderCard({
       </div>
 
       {/* Details section */}
-      {(details.length > 0 || isAnthropicProvider || missing.length > 0) && (
+      {(hasDetails || isAnthropicProvider || missing.length > 0) && (
         <div className="flex flex-col gap-2 pt-2 border-t border-sand-200/10">
-          {details.length > 0 && (
+          {hasDetails && (
             <div className="flex flex-col gap-1.5 text-xs">
               {/* Base URL - compact single line */}
               {provider.baseUrl && (
                 <div className="flex items-center gap-2 group/url">
                   <span className="text-[10px] text-sand-200/30 shrink-0">API</span>
-                  <span 
+                  <span
                     className="font-mono text-sand-200/60 break-all flex-1"
                     title={provider.baseUrl}
                   >
                     {provider.baseUrl}
                   </span>
-                  <CopyButton text={provider.baseUrl} />
+                  <CopyButton text={provider.baseUrl} t={t} />
                 </div>
               )}
-              
+
               {/* Model and Website in one row */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {provider.model && (
                   <span className="text-sand-200/40 text-[11px]">
-                    <span className="text-sand-200/30">Model</span>{" "}
+                    <span className="text-sand-200/30">{t('list.model')}</span>{" "}
                     <span className="text-sand-200/50">{provider.model}</span>
                   </span>
                 )}
@@ -190,7 +194,7 @@ export function ProviderCard({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="w-3 h-3" />
-                    官网
+                    {t('list.website')}
                   </a>
                 )}
               </div>
@@ -199,15 +203,15 @@ export function ProviderCard({
 
           {isAnthropicProvider && (
             <p className="text-xs text-sand-200/40 italic">
-              使用 Claude Code /login 登录状态，配置由系统维护
+              {t('list.anthropicNote')}
             </p>
           )}
 
           {missing.length > 0 && (
             <div className="flex items-center gap-2 rounded-md bg-coral-500/10 px-3 py-2 text-xs text-coral-400">
-              <span className="font-medium">缺少配置:</span>
-              <span>{missing.join("、")}</span>
-              <span className="text-coral-400/60">— 请点击编辑补充</span>
+              <span className="font-medium">{t('list.missingConfig')}:</span>
+              <span>{missing.join(", ")}</span>
+              <span className="text-coral-400/60">{t('list.missingFields')}</span>
             </div>
           )}
         </div>

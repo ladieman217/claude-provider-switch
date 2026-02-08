@@ -2,104 +2,128 @@
 
 [![npm version](https://img.shields.io/npm/v/claude-provider-switch)](https://www.npmjs.com/package/claude-provider-switch)
 [![license](https://img.shields.io/npm/l/claude-provider-switch)](LICENSE)
+![node version](https://img.shields.io/node/v/claude-provider-switch)
 
-一键切换 Claude Code 的 API Provider。支持 Anthropic 官方 API 或任何兼容 Anthropic API 格式的第三方服务（如智谱、火山方舟等）。
+[English](README.md) | [中文](README.zh-CN.md)
+
+Quickly switch between Claude Code API providers. Supports official Anthropic API and any third-party service compatible with Anthropic's API format (such as Zhipu, Volcengine Ark, etc.).
 
 <p align="center">
-  <img src="docs/screenshot-ui.png" alt="Web UI 截图" width="720">
+  <img src="docs/screenshot-ui.png" alt="Web UI Screenshot" width="720">
 </p>
 
-## 为什么需要这个工具？
+## Why This Tool?
 
-- **多 Provider 管理** — 同时配置多个 API 提供商，随时切换
-- **避免手动改配置** — 自动管理 `~/.claude/settings.json`，无需手动编辑
-- **安全备份** — 每次修改前自动备份，可随时恢复
-- **可视化界面** — 除了 CLI，还提供了直观的 Web UI
+- **Multi-provider Management** — Configure multiple API providers and switch instantly
+- **No Manual Config Editing** — Automatically manages `~/.claude/settings.json`
+- **Safe Backups** — Automatic backups before every change, easy to restore
+- **Visual Interface** — Both CLI and intuitive Web UI included
 
-## 安装
+## Installation
+
+### Global Install (Recommended)
 
 ```bash
 npm install -g claude-provider-switch
-# 或使用 pnpm
+# or use pnpm
 pnpm add -g claude-provider-switch
 ```
 
-## 快速开始
+### Using npx (No Installation)
 
-### 1. 启动 Web UI（推荐）
+```bash
+npx claude-provider-switch serve
+```
+
+### Requirements
+
+- **Node.js >= 18**
+
+## Quick Start
+
+### 1. Launch Web UI (Recommended)
 
 ```bash
 cps serve
 ```
 
-然后打开 http://localhost:8787 即可通过界面管理 Provider。
+Then open http://localhost:8787 to manage providers through the interface.
 
-### 2. 使用 CLI
+### 2. Use CLI
 
 ```bash
-# 查看当前配置
+# Check current configuration
 cps current
 
-# 查看版本
+# Show version
 cps version
-# 或
+# or
 cps --version
 
-# 列出所有 Provider
+# List all providers
 cps list
-# 输出示例：* [anthropic] anthropic (...)
+# Output example: * [anthropic] anthropic (...)
 
-# 交互式选择 Provider
+# Interactive selection
 cps select
 
-# 按 id 切换
+# Switch by id
 cps use anthropic
 
-# 添加自定义 Provider
+# Add custom provider
 cps add my-provider \
   --id my-provider \
   --base-url https://api.example.com \
   --token sk-xxx \
   --model claude-3-5-sonnet
+
+# Use stdin for token (safer, avoids shell history)
+echo "sk-xxx" | cps add my-provider \
+  --id my-provider \
+  --base-url https://api.example.com \
+  --token-stdin \
+  --model claude-3-5-sonnet
 ```
 
-## CLI 命令参考
+## CLI Command Reference
 
-| 命令 | 描述 |
-|------|------|
-| `cps list` | 列出所有配置的 Provider（显示 id + name） |
-| `cps current` | 显示当前使用的 Provider |
-| `cps version` | 显示当前 CLI 版本 |
-| `cps select` | 交互式选择并应用 Provider |
-| `cps use <id>` | 按 id 切换到指定的 Provider |
-| `cps add <name>` | 添加新的 Provider（可选 `--id` 指定稳定 id） |
-| `cps remove <name>` | 删除指定的 Provider |
-| `cps serve` | 启动 Web UI 服务 |
+| Command | Description |
+|---------|-------------|
+| `cps list` | List all configured providers (shows id + name) |
+| `cps current` | Show currently active provider |
+| `cps version` | Show CLI version |
+| `cps select` | Interactively select and apply a provider |
+| `cps use <id>` | Switch to specified provider by id |
+| `cps add <name>` | Add a new provider (optional `--id` for stable id) |
+| `cps remove <name>` | Remove a provider |
+| `cps serve` | Start the Web UI server |
 
-`--id` 规则：仅支持小写字母、数字和连字符（`-`），最长 24 字符，且必须唯一。
+`--id` rules: lowercase letters, numbers, and hyphens (`-`) only, max 24 characters, must be unique.
 
-## 预设 Provider
+> **Security Note**: `--token` exposes secrets in shell history. Prefer `--token-stdin` when possible.
 
-首次运行时会自动创建以下预设配置：
+## Preset Providers
 
-| Provider | 说明 |
-|----------|------|
-| `anthropic` | 官方 API，需先运行 `claude code /login` 登录 |
-| `智谱Coding Plan` | 智谱 AI 的 Coding 套餐 |
-| `火山方舟Coding Plan` | 火山方舟的 Coding 套餐 |
-| `custom` | 占位配置，可自行修改为自定义 Provider |
+On first run, the following presets are automatically created:
 
-## 配置说明
+| Provider | Description |
+|----------|-------------|
+| `anthropic` | Official API, run `claude code /login` first |
+| `智谱Coding Plan` | Zhipu AI Coding Plan |
+| `火山方舟Coding Plan` | Volcengine Ark Coding Plan |
+| `custom` | Placeholder for custom configuration |
 
-### 默认路径
+## Configuration
 
-- **Provider 配置**：`~/.config/claude-provider-switch/config.json`
-- **Claude 设置**：`~/.claude/settings.json`
-- **备份文件**：`~/.config/claude-provider-switch/backups/settings.backup-*.json`（保留最近 3 份）
+### Default Paths
 
-### 环境变量
+- **Provider Config**: `~/.config/claude-provider-switch/config.json`
+- **Claude Settings**: `~/.claude/settings.json`
+- **Backup Files**: `~/.config/claude-provider-switch/backups/settings.backup-*.json` (keeps last 3)
 
-可通过以下环境变量覆盖默认路径：
+### Environment Variables
+
+Override default paths via environment variables:
 
 ```bash
 export CPS_CONFIG_PATH=/path/to/config.json
@@ -109,56 +133,46 @@ export CPS_CLAUDE_SETTINGS_PATH=/path/to/settings.json
 export CPS_CLAUDE_DIR=/path/to/claude/dir
 ```
 
-## 开发
+## Development
 
 ```bash
-# 克隆仓库
+# Clone repository
 git clone https://github.com/ladieman217/claude-provider-switcher.git
 cd claude-provider-switcher
 
-# 安装依赖
+# Install dependencies
 pnpm install
 
-# 开发模式（同时启动 UI 和 API 服务）
+# Development mode (starts both UI and API servers)
 pnpm run dev
 
-# 构建
+# Build
 pnpm run build
 
-# 测试
+# Test
 pnpm run test
 ```
 
-## 发布 npm 包
+## FAQ
 
-发布前检查：
+### Q: Claude Code doesn't pick up the new provider after switching?
+**A:** Make sure to restart Claude Code after switching. If it still doesn't work, check if `~/.claude/settings.json` was updated.
 
-```bash
-pnpm run release:check
-```
+### Q: How do I restore to the original configuration?
+**A:** Backups are automatically created before each modification at `~/.config/claude-provider-switch/backups/`. You can restore manually or run `cps use anthropic` to switch back to the official API.
 
-推荐（自动 bump 版本 + 打 tag + push，触发 GitHub Actions 发布）：
+### Q: Web UI shows port already in use?
+**A:** The service automatically tries ports after 8787, or specify a port manually: `cps serve --port 3000`.
 
-```bash
-pnpm run release:patch  # 或 release:minor / release:major
-```
+### Q: How do I view backup history?
+**A:** Backup files are saved at `~/.config/claude-provider-switch/backups/settings.backup-*.json`, keeping the last 3 copies.
 
-手动发布（本地直接发 npm）：
+### Q: Adding a provider shows "ID already exists"?
+**A:** IDs must be unique. Use `cps list` to see existing IDs, or specify a different ID with `--id`.
 
-```bash
-npm login
-pnpm run release:publish
-```
+## Contributing
 
-说明：
-- 实际发布包目录是 `packages/cli`。
-- 发布时会自动执行 `lint`、`test`，并在打包前自动构建 UI + CLI。
-- 如果启用了 2FA，`npm publish` 会提示输入 OTP。
-- `release:patch/minor/major` 会自动执行：版本号变更提交（commit）-> 创建 `vX.Y.Z` tag -> push 分支和 tag。
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
 ## License
 

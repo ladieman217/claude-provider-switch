@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import type { Provider, ProvidersResponse, BackupInfo, BackupsResponse } from "../types";
 
-export function useProviders() {
+interface UseProvidersOptions {
+  t: (key: string, params?: Record<string, string>) => string;
+}
+
+export function useProviders(options: UseProvidersOptions) {
+  const { t } = options;
   const [providers, setProviders] = useState<Provider[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -11,12 +16,12 @@ export function useProviders() {
   const fetchProviders = useCallback(async () => {
     const response = await fetch("/api/providers");
     if (!response.ok) {
-      throw new Error("Failed to load providers.");
+      throw new Error(t('toast.error.loadFailed'));
     }
     const data = (await response.json()) as ProvidersResponse;
     setProviders(data.providers);
     setCurrent(data.current);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchProviders().catch((error) => {
@@ -43,7 +48,7 @@ export function useProviders() {
   const applyProvider = useCallback(
     async (provider: Provider) => {
       if (!provider.id) {
-        toast.error("Provider ID is missing.");
+        toast.error(t('toast.error.providerIdMissing'));
         return false;
       }
 
@@ -56,10 +61,10 @@ export function useProviders() {
         });
         if (!response.ok) {
           const body = await response.json();
-          throw new Error(body.error ?? "Failed to apply provider.");
+          throw new Error(body.error ?? t('toast.error.applyFailed'));
         }
         await fetchProviders();
-        toast.success(`已切换到 "${provider.name}"`);
+        toast.success(t('toast.providerApplied', { name: provider.name }));
         return true;
       } catch (error) {
         toast.error((error as Error).message);
@@ -68,13 +73,13 @@ export function useProviders() {
         setLoading(false);
       }
     },
-    [fetchProviders]
+    [fetchProviders, t]
   );
 
   const removeProvider = useCallback(
     async (provider: Provider) => {
       if (!provider.id) {
-        toast.error("Provider ID is missing.");
+        toast.error(t('toast.error.providerIdMissing'));
         return false;
       }
       setLoading(true);
@@ -87,10 +92,10 @@ export function useProviders() {
         );
         if (!response.ok) {
           const body = await response.json();
-          throw new Error(body.error ?? "Failed to remove provider.");
+          throw new Error(body.error ?? t('toast.error.deleteFailed'));
         }
         await fetchProviders();
-        toast.success(`"${provider.name}" 已删除`);
+        toast.success(t('toast.providerDeleted', { name: provider.name }));
         return true;
       } catch (error) {
         toast.error((error as Error).message);
@@ -99,7 +104,7 @@ export function useProviders() {
         setLoading(false);
       }
     },
-    [fetchProviders]
+    [fetchProviders, t]
   );
 
   const saveProvider = useCallback(
@@ -119,11 +124,11 @@ export function useProviders() {
 
         if (!response.ok) {
           const body = await response.json();
-          throw new Error(body.error ?? "Failed to save provider.");
+          throw new Error(body.error ?? t('toast.error.saveFailed'));
         }
 
         await fetchProviders();
-        toast.success(editingId ? "Provider 已更新" : "Provider 已创建");
+        toast.success(editingId ? t('toast.providerUpdated') : t('toast.providerAdded'));
         return true;
       } catch (error) {
         toast.error((error as Error).message);
@@ -132,7 +137,7 @@ export function useProviders() {
         setLoading(false);
       }
     },
-    [fetchProviders]
+    [fetchProviders, t]
   );
 
   return {
@@ -150,18 +155,23 @@ export function useProviders() {
   };
 }
 
-export function useBackups() {
+interface UseBackupsOptions {
+  t: (key: string, params?: Record<string, string>) => string;
+}
+
+export function useBackups(options: UseBackupsOptions) {
+  const { t } = options;
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchBackups = useCallback(async () => {
     const response = await fetch("/api/backups");
     if (!response.ok) {
-      throw new Error("Failed to load backups.");
+      throw new Error(t('toast.error.loadFailed'));
     }
     const data = (await response.json()) as BackupsResponse;
     setBackups(data.backups);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchBackups().catch((error) => {
@@ -180,10 +190,10 @@ export function useBackups() {
         });
         if (!response.ok) {
           const body = await response.json();
-          throw new Error(body.error ?? "Failed to restore backup.");
+          throw new Error(body.error ?? t('toast.error.restoreFailed'));
         }
         await fetchBackups();
-        toast.success("备份已恢复");
+        toast.success(t('toast.backupRestored'));
         return true;
       } catch (error) {
         toast.error((error as Error).message);
@@ -192,7 +202,7 @@ export function useBackups() {
         setLoading(false);
       }
     },
-    [fetchBackups]
+    [fetchBackups, t]
   );
 
   return {

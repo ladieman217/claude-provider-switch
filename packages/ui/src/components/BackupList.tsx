@@ -18,6 +18,7 @@ interface BackupListProps {
   backups: BackupInfo[];
   loading: boolean;
   onRestore: (backup: BackupInfo) => void;
+  t: (key: string, params?: Record<string, string>) => string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -28,9 +29,9 @@ function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-function formatTime(timestamp: number): string {
+function formatTime(timestamp: number, locale: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleString("zh-CN", {
+  return date.toLocaleString(locale === 'zh-CN' ? 'zh-CN' : 'en-US', {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -39,7 +40,7 @@ function formatTime(timestamp: number): string {
   });
 }
 
-export function BackupList({ backups, loading, onRestore }: BackupListProps) {
+export function BackupList({ backups, loading, onRestore, t }: BackupListProps) {
   const [restoreTarget, setRestoreTarget] = useState<BackupInfo | null>(null);
 
   return (
@@ -48,14 +49,14 @@ export function BackupList({ backups, loading, onRestore }: BackupListProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-sand-200/60" />
-            Claude 设置备份
+            {t('backup.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {backups.length === 0 ? (
             <div className="text-center py-6 text-sm text-sand-200/40">
               <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              暂无备份
+              {t('backup.empty')}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -68,7 +69,7 @@ export function BackupList({ backups, loading, onRestore }: BackupListProps) {
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex flex-col">
                       <span className="font-mono text-sand-100">
-                        {formatTime(backup.mtime)}
+                        {formatTime(backup.mtime, navigator.language.startsWith('zh') ? 'zh-CN' : 'en')}
                       </span>
                       <span className="text-xs text-sand-200/40">
                         {formatFileSize(backup.size)}
@@ -83,7 +84,7 @@ export function BackupList({ backups, loading, onRestore }: BackupListProps) {
                     disabled={loading}
                   >
                     <RotateCcw className="w-4 h-4" />
-                    恢复
+                    {t('backup.restore')}
                   </Button>
                 </div>
               ))}
@@ -100,18 +101,14 @@ export function BackupList({ backups, loading, onRestore }: BackupListProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>恢复 Claude 设置</AlertDialogTitle>
+            <AlertDialogTitle>{t('backup.restoreConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要恢复备份
-              <span className="font-semibold text-sand-100 mx-1">
-                {restoreTarget ? formatTime(restoreTarget.mtime) : ""}
-              </span>
-              吗？当前设置会先自动备份一次。
+              {t('backup.restoreWarning', { time: restoreTarget ? formatTime(restoreTarget.mtime, navigator.language.startsWith('zh') ? 'zh-CN' : 'en') : '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setRestoreTarget(null)}>
-              取消
+              {t('backup.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -121,7 +118,7 @@ export function BackupList({ backups, loading, onRestore }: BackupListProps) {
                 }
               }}
             >
-              恢复
+              {t('backup.restore')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
