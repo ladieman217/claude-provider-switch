@@ -263,13 +263,14 @@ program
 
 program
   .command("remove")
-  .argument("<name>", "Provider name")
-  .description("Remove a provider")
-  .action(async (name: string) => {
+  .alias("rm")
+  .argument("<reference>", "Provider id or name")
+  .description("Remove a provider by id or name")
+  .action(async (reference: string) => {
     const config = await ensureConfig();
-    const nextConfig = removeProvider(config, name);
+    const nextConfig = removeProvider(config, reference);
     await saveConfig(nextConfig);
-    console.log(`Removed provider '${name}'.`);
+    console.log(`Removed provider '${reference}'.`);
   });
 
 program

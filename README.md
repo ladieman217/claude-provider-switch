@@ -95,7 +95,7 @@ echo "sk-xxx" | cps add my-provider \
 | `cps select` | Interactively select and apply a provider |
 | `cps use <id>` | Switch to specified provider by id |
 | `cps add <name>` | Add a new provider (optional `--id` for stable id) |
-| `cps remove <name>` | Remove a provider |
+| `cps remove <id-or-name>` | Remove a provider by id or name (`cps rm` alias supported) |
 | `cps serve` | Start the Web UI server |
 
 `--id` rules: lowercase letters, numbers, and hyphens (`-`) only, max 24 characters, must be unique.
@@ -109,7 +109,6 @@ On first run, the following presets are automatically created:
 | Provider | Description |
 |----------|-------------|
 | `anthropic` | Official API, run `claude code /login` first |
-| `智谱Coding Plan` | Zhipu AI Coding Plan |
 | `火山方舟Coding Plan` | Volcengine Ark Coding Plan |
 
 ## Configuration

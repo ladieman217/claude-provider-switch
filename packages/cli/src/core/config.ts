@@ -328,20 +328,21 @@ export const updateProviderById = (
 };
 
 export const removeProvider = (config: ConfigFile, name: string): ConfigFile => {
-  const normalizedName = normalizeProviderName(name);
-  const target = findProvider(config, normalizedName);
-  if (target && isAnthropicName(normalizedName) && target.preset) {
+  const target = findProviderByReference(config, name);
+  if (!target) {
+    throw new Error(`Provider '${name}' not found.`);
+  }
+
+  if (isAnthropicProvider(target) && target.preset) {
     throw new Error("Anthropic preset is read-only.");
   }
-  const providers = config.providers.filter(
-    (provider) => provider.name !== normalizedName
+
+  const normalizedName = normalizeProviderName(target.name);
+  const removedId = target.id;
+  const providers = config.providers.filter((provider) =>
+    removedId ? provider.id !== removedId : provider.name !== normalizedName
   );
 
-  if (providers.length === config.providers.length) {
-    throw new Error(`Provider '${normalizedName}' not found.`);
-  }
-
-  const removedId = target?.id;
   return {
     ...config,
     current: removedId && config.current === removedId ? null : config.current,

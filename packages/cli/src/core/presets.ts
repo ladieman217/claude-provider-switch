@@ -12,16 +12,6 @@ export const DEFAULT_PRESETS: ProviderConfig[] = [
     website: "https://www.anthropic.com",
   },
   {
-    id: "zhipu",
-    name: "智谱Coding Plan",
-    baseUrl: "https://open.bigmodel.cn/api/anthropic",
-    authToken: "",
-    model: "",
-    preset: true,
-    description: "Zhipu AI (GLM) compatible endpoint",
-    website: "https://open.bigmodel.cn",
-  },
-  {
     id: "volc",
     name: "火山方舟Coding Plan",
     baseUrl: "https://ark.cn-beijing.volces.com/api/coding",

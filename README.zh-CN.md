@@ -93,7 +93,7 @@ echo "sk-xxx" | cps add my-provider \
 | `cps select` | 交互式选择并应用 Provider |
 | `cps use <id>` | 按 id 切换到指定的 Provider |
 | `cps add <name>` | 添加新的 Provider（可选 `--id` 指定稳定 id） |
-| `cps remove <name>` | 删除指定的 Provider |
+| `cps remove <id-or-name>` | 按 id 或 name 删除 Provider（支持 `cps rm` 别名） |
 | `cps serve` | 启动 Web UI 服务 |
 
 `--id` 规则：仅支持小写字母、数字和连字符（`-`），最长 24 字符，且必须唯一。
@@ -107,7 +107,6 @@ echo "sk-xxx" | cps add my-provider \
 | Provider | 说明 |
 |----------|------|
 | `anthropic` | 官方 API，需先运行 `claude code /login` 登录 |
-| `智谱Coding Plan` | 智谱 AI 的 Coding 套餐 |
 | `火山方舟Coding Plan` | 火山方舟的 Coding 套餐 |
 
 ## 配置说明
