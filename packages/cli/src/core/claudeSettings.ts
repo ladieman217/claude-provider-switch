@@ -149,14 +149,46 @@ export const applyProviderToClaudeSettings = async (
     delete env.ANTHROPIC_BASE_URL;
     delete env.ANTHROPIC_AUTH_TOKEN;
     delete env.ANTHROPIC_MODEL;
+    delete env.ANTHROPIC_SMALL_FAST_MODEL;
+    delete env.ANTHROPIC_DEFAULT_OPUS_MODEL;
+    delete env.ANTHROPIC_DEFAULT_SONNET_MODEL;
+    delete env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
   } else {
     env.ANTHROPIC_BASE_URL = provider.baseUrl ?? "";
     env.ANTHROPIC_AUTH_TOKEN = provider.authToken ?? "";
 
-    if (provider.model && provider.model.trim()) {
+    // Handle model mappings
+    const mappings = provider.modelMappings;
+    if (mappings?.defaultModel?.trim()) {
+      env.ANTHROPIC_MODEL = mappings.defaultModel.trim();
+    } else if (provider.model?.trim()) {
       env.ANTHROPIC_MODEL = provider.model.trim();
     } else {
       delete env.ANTHROPIC_MODEL;
+    }
+
+    if (mappings?.smallFastModel?.trim()) {
+      env.ANTHROPIC_SMALL_FAST_MODEL = mappings.smallFastModel.trim();
+    } else {
+      delete env.ANTHROPIC_SMALL_FAST_MODEL;
+    }
+
+    if (mappings?.defaultOpusModel?.trim()) {
+      env.ANTHROPIC_DEFAULT_OPUS_MODEL = mappings.defaultOpusModel.trim();
+    } else {
+      delete env.ANTHROPIC_DEFAULT_OPUS_MODEL;
+    }
+
+    if (mappings?.defaultSonnetModel?.trim()) {
+      env.ANTHROPIC_DEFAULT_SONNET_MODEL = mappings.defaultSonnetModel.trim();
+    } else {
+      delete env.ANTHROPIC_DEFAULT_SONNET_MODEL;
+    }
+
+    if (mappings?.defaultHaikuModel?.trim()) {
+      env.ANTHROPIC_DEFAULT_HAIKU_MODEL = mappings.defaultHaikuModel.trim();
+    } else {
+      delete env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
     }
   }
   env.API_TIMEOUT_MS = "3000000";

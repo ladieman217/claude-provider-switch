@@ -1,8 +1,12 @@
 import { Command } from "commander";
 import path from "path";
 import net from "net";
+import { exec } from "child_process";
+import { promisify } from "util";
 import readline from "node:readline/promises";
 import packageJson from "../package.json";
+
+const execAsync = promisify(exec);
 import {
   addProvider,
   assertProviderHasAuthToken,
@@ -60,6 +64,28 @@ const findAvailablePort = async (start: number, attempts = 20) => {
   }
 
   throw new Error("No available port found.");
+};
+
+const openBrowser = async (url: string) => {
+  const platform = process.platform;
+  let command: string;
+
+  switch (platform) {
+    case "darwin":
+      command = `open "${url}"`;
+      break;
+    case "win32":
+      command = `start "" "${url}"`;
+      break;
+    default:
+      command = `xdg-open "${url}"`;
+  }
+
+  try {
+    await execAsync(command);
+  } catch {
+    // Silently fail - opening browser is not critical
+  }
 };
 
 const applyProviderById = async (id: string): Promise<ProviderConfig> => {
@@ -290,9 +316,13 @@ program
     const server = await startServer({ uiDistPath: defaultUiDist }, port);
 
     server.on("listening", () => {
+      const localUrl = `http://localhost:${port}`;
       console.log("[cps] Server ready!");
-      console.log(`[cps] Local URL: http://localhost:${port}`);
+      console.log(`[cps] Local URL: ${localUrl}`);
       console.log("[cps] Press Ctrl+C to stop");
+      if (!process.env.CPS_NO_BROWSER) {
+        void openBrowser(localUrl);
+      }
     });
 
     server.on("error", (err) => {

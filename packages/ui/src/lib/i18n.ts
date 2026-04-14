@@ -71,6 +71,21 @@ export const translations = {
     'form.clear': '清空',
     'form.cancel': '取消',
 
+    // Model Mapping
+    'modelMapping.title': '模型映射',
+    'modelMapping.optional': '可选',
+    'modelMapping.selectPlaceholder': '选择模型...',
+    'modelMapping.defaultModel': '主模型 (ANTHROPIC_MODEL)',
+    'modelMapping.smallFastModel': '小型快速模型 (ANTHROPIC_SMALL_FAST_MODEL)',
+    'modelMapping.defaultOpusModel': '默认 Opus 模型 (ANTHROPIC_DEFAULT_OPUS_MODEL)',
+    'modelMapping.defaultSonnetModel': '默认 Sonnet 模型 (ANTHROPIC_DEFAULT_SONNET_MODEL)',
+    'modelMapping.defaultHaikuModel': '默认 Haiku 模型 (ANTHROPIC_DEFAULT_HAIKU_MODEL)',
+    'modelMapping.customModels': '自定义模型',
+    'modelMapping.addModel': '添加模型',
+    'modelMapping.modelId': '模型 ID',
+    'modelMapping.displayName': '显示名称（可选）',
+    'modelMapping.noModels': '暂无自定义模型',
+
     // Backup
     'backup.title': 'Claude 设置备份',
     'backup.empty': '暂无备份',
@@ -155,6 +170,21 @@ export const translations = {
     'form.reset': 'Reset',
     'form.clear': 'Clear',
     'form.cancel': 'Cancel',
+
+    // Model Mapping
+    'modelMapping.title': 'Model Mapping',
+    'modelMapping.optional': 'Optional',
+    'modelMapping.selectPlaceholder': 'Select model...',
+    'modelMapping.defaultModel': 'Main Model (ANTHROPIC_MODEL)',
+    'modelMapping.smallFastModel': 'Small Fast Model (ANTHROPIC_SMALL_FAST_MODEL)',
+    'modelMapping.defaultOpusModel': 'Default Opus Model (ANTHROPIC_DEFAULT_OPUS_MODEL)',
+    'modelMapping.defaultSonnetModel': 'Default Sonnet Model (ANTHROPIC_DEFAULT_SONNET_MODEL)',
+    'modelMapping.defaultHaikuModel': 'Default Haiku Model (ANTHROPIC_DEFAULT_HAIKU_MODEL)',
+    'modelMapping.customModels': 'Custom Models',
+    'modelMapping.addModel': 'Add Model',
+    'modelMapping.modelId': 'Model ID',
+    'modelMapping.displayName': 'Display Name (optional)',
+    'modelMapping.noModels': 'No custom models added yet',
 
     // Backup
     'backup.title': 'Claude Settings Backup',

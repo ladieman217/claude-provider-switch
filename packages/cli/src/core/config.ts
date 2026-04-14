@@ -239,6 +239,7 @@ export const addProvider = (
         ...provider,
         id: nextId,
         name: normalizedName,
+        modelMappings: provider.modelMappings,
         preset: false
       }
     ]
@@ -273,6 +274,8 @@ export const updateProvider = (
     website: updates.website !== undefined ? updates.website : target.website,
     description:
       updates.description !== undefined ? updates.description : target.description,
+    modelMappings:
+      updates.modelMappings !== undefined ? updates.modelMappings : target.modelMappings,
     preset: target.preset
   };
 
@@ -314,6 +317,8 @@ export const updateProviderById = (
     website: updates.website !== undefined ? updates.website : target.website,
     description:
       updates.description !== undefined ? updates.description : target.description,
+    modelMappings:
+      updates.modelMappings !== undefined ? updates.modelMappings : target.modelMappings,
     preset: target.preset
   };
 

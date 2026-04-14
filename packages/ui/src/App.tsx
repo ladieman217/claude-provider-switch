@@ -47,11 +47,15 @@ export default function App() {
     async (payload: Partial<Provider>, editingId?: string | null) => {
       const success = await saveProvider(payload, editingId);
       if (success) {
+        // 如果编辑的是当前正在使用的 provider，自动重新应用配置
+        if (editingId && editingId === current) {
+          await applyProvider({ id: editingId } as Provider);
+        }
         setEditing(null);
       }
       return success;
     },
-    [saveProvider]
+    [saveProvider, applyProvider, current]
   );
 
   const handleDelete = useCallback(

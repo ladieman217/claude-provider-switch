@@ -6,6 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
+import { ModelMapping } from "./ModelMapping";
 import type { Provider, FormErrors } from "../types";
 
 interface ProviderFormProps {
@@ -24,6 +25,14 @@ const emptyForm: Provider = {
   model: "",
   description: "",
   website: "",
+  modelMappings: {
+    defaultModel: "",
+    smallFastModel: "",
+    defaultOpusModel: "",
+    defaultSonnetModel: "",
+    defaultHaikuModel: "",
+    customModels: [],
+  },
 };
 
 const isValidUrl = (value?: string) => {
@@ -62,6 +71,14 @@ export function ProviderForm({
         model: editing.model ?? "",
         description: editing.description ?? "",
         website: editing.website ?? "",
+        modelMappings: editing.modelMappings || {
+          defaultModel: "",
+          smallFastModel: "",
+          defaultOpusModel: "",
+          defaultSonnetModel: "",
+          defaultHaikuModel: "",
+          customModels: [],
+        },
       };
       setForm(initialForm);
       setOriginalForm(initialForm);
@@ -142,6 +159,7 @@ export function ProviderForm({
       model: form.model?.trim() || "",
       description: form.description?.trim() || "",
       website: form.website?.trim() || "",
+      modelMappings: form.modelMappings,
     };
 
     onSubmit(payload, editing?.id);
@@ -314,6 +332,15 @@ export function ProviderForm({
           {touched.id && errors.id && (
             <p className="text-xs text-coral-400">{errors.id}</p>
           )}
+        </div>
+
+        {/* Model Mapping Section */}
+        <div className="pt-4 border-t border-sand-200/10">
+          <ModelMapping
+            value={form.modelMappings}
+            onChange={(value) => setForm((prev) => ({ ...prev, modelMappings: value }))}
+            t={t}
+          />
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">

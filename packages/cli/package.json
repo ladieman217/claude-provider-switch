@@ -32,7 +32,7 @@
     "cps": "dist/index.js"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts serve",
+    "dev": "CPS_NO_BROWSER=1 tsx watch src/index.ts serve",
     "build": "pnpm -C ../ui run build && tsup && node scripts/copy-ui.mjs",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
