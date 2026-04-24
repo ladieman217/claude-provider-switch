@@ -6,6 +6,8 @@ import {
   addProvider,
   assertProviderHasAuthToken,
   applyProviderToClaudeSettings,
+  collectCustomEnvKeysToClear,
+  collectProviderCustomEnvKeys,
   ensureConfig,
   findProviderById,
   findProviderByReference,
@@ -192,11 +194,20 @@ export const createApp = async (
         return;
       }
 
-      await saveConfig(nextConfig, options);
-      await applyProviderToClaudeSettings(provider, options);
+      const customEnvKeysToClear = collectCustomEnvKeysToClear(nextConfig);
+      const configToSave = {
+        ...nextConfig,
+        managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+      };
+      await saveConfig(configToSave, options);
+      await applyProviderToClaudeSettings(
+        provider,
+        options,
+        customEnvKeysToClear
+      );
 
       res.json({
-        current: nextConfig.current,
+        current: configToSave.current,
         provider: sanitizeProviderForResponse(provider)
       });
     } catch (error) {

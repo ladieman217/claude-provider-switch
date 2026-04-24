@@ -106,6 +106,7 @@ describe("server api", () => {
     });
     const postProviders = getRouteHandler(app, "post", "/api/providers");
     const getProviders = getRouteHandler(app, "get", "/api/providers");
+    const putProvider = getRouteHandler(app, "put", "/api/providers/:id");
     const postCurrent = getRouteHandler(app, "post", "/api/current");
 
     const createRes = createMockResponse();
@@ -128,6 +129,23 @@ describe("server api", () => {
     );
     expect(createRes.statusCode).toBe(201);
 
+    const createSecondRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          name: "remote",
+          baseUrl: "https://remote.example.com",
+          authToken: "remote-token",
+          customEnv: {
+            ENABLE_REMOTE: "true"
+          }
+        },
+        params: {}
+      },
+      createSecondRes
+    );
+    expect(createSecondRes.statusCode).toBe(201);
+
     const listRes = createMockResponse();
     await getProviders({ body: {}, params: {} }, listRes);
     expect(listRes.statusCode).toBe(200);
@@ -135,6 +153,10 @@ describe("server api", () => {
       listRes.body as { providers: Array<{ id?: string; name: string }> }
     ).providers.find((provider) => provider.name === "local");
     expect(local?.id).toBeTruthy();
+    const remote = (
+      listRes.body as { providers: Array<{ id?: string; name: string }> }
+    ).providers.find((provider) => provider.name === "remote");
+    expect(remote?.id).toBeTruthy();
 
     const setCurrentRes = createMockResponse();
     await postCurrent({ body: { name: local?.id }, params: {} }, setCurrentRes);
@@ -150,6 +172,31 @@ describe("server api", () => {
     expect(settings.env.REQUEST_TIMEOUT_MS).toBe(3000);
     expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
     expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
+
+    const updateLocalRes = createMockResponse();
+    await putProvider(
+      {
+        body: {
+          baseUrl: "https://example.com",
+          authToken: "",
+          customEnv: {}
+        },
+        params: { id: local?.id }
+      },
+      updateLocalRes
+    );
+    expect(updateLocalRes.statusCode).toBe(200);
+
+    const setRemoteRes = createMockResponse();
+    await postCurrent({ body: { name: remote?.id }, params: {} }, setRemoteRes);
+    expect(setRemoteRes.statusCode).toBe(200);
+
+    const remoteSettings = JSON.parse(await fs.readFile(claudeSettingsPath, "utf8"));
+    expect(remoteSettings.env.FOO_TOKEN).toBeUndefined();
+    expect(remoteSettings.env.EMPTY_VALUE).toBeUndefined();
+    expect(remoteSettings.env.ENABLE_TOOL_SEARCH).toBeUndefined();
+    expect(remoteSettings.env.REQUEST_TIMEOUT_MS).toBeUndefined();
+    expect(remoteSettings.env.ENABLE_REMOTE).toBe(true);
   });
 
   it("accepts user-defined provider id", async () => {

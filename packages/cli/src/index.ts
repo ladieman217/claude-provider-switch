@@ -11,6 +11,8 @@ import {
   addProvider,
   assertProviderHasAuthToken,
   applyProviderToClaudeSettings,
+  collectCustomEnvKeysToClear,
+  collectProviderCustomEnvKeys,
   ensureConfig,
   findProviderById,
   removeProvider,
@@ -114,8 +116,17 @@ const applyProviderById = async (id: string): Promise<ProviderConfig> => {
   }
 
   assertProviderHasAuthToken(provider);
-  await saveConfig(nextConfig);
-  await applyProviderToClaudeSettings(provider);
+  const customEnvKeysToClear = collectCustomEnvKeysToClear(nextConfig);
+  const configToSave = {
+    ...nextConfig,
+    managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+  };
+  await saveConfig(configToSave);
+  await applyProviderToClaudeSettings(
+    provider,
+    {},
+    customEnvKeysToClear
+  );
   return provider;
 };
 

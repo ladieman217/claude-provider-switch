@@ -151,7 +151,8 @@ export const restoreClaudeSettingsBackup = async (
 
 export const applyProviderToClaudeSettings = async (
   provider: ProviderConfig,
-  options: PathsOptions = {}
+  options: PathsOptions = {},
+  customEnvKeysToClear: Iterable<string> = []
 ): Promise<ClaudeSettings> => {
   const { claudeDir, backupDir, claudeSettingsPath } = resolvePaths(options);
 
@@ -211,12 +212,27 @@ export const applyProviderToClaudeSettings = async (
       delete env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
     }
 
+    for (const key of customEnvKeysToClear) {
+      const envKey = key.trim();
+      if (envKey) {
+        delete env[envKey];
+      }
+    }
+
     if (provider.customEnv && typeof provider.customEnv === "object") {
       for (const [key, value] of Object.entries(provider.customEnv)) {
         const envKey = key.trim();
         if (envKey) {
           env[envKey] = parseCustomEnvValue(value);
         }
+      }
+    }
+  }
+  if (isAnthropic) {
+    for (const key of customEnvKeysToClear) {
+      const envKey = key.trim();
+      if (envKey) {
+        delete env[envKey];
       }
     }
   }

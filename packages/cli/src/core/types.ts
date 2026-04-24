@@ -29,6 +29,7 @@ export type ProviderConfig = {
 export type ConfigFile = {
   version: 1;
   current: string | null;
+  managedCustomEnvKeys?: string[];
   providers: ProviderConfig[];
 };
 

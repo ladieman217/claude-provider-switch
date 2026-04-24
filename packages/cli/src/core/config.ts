@@ -97,6 +97,32 @@ const assertValidCustomEnv = (customEnv: ProviderConfig["customEnv"]) => {
   }
 };
 
+export const collectProviderCustomEnvKeys = (
+  providers: ProviderConfig[]
+): string[] => {
+  const keys = new Set<string>();
+  for (const provider of providers) {
+    const customEnv = normalizeCustomEnv(provider.customEnv);
+    if (!customEnv) {
+      continue;
+    }
+    for (const key of Object.keys(customEnv)) {
+      keys.add(key);
+    }
+  }
+  return Array.from(keys);
+};
+
+export const collectCustomEnvKeysToClear = (config: ConfigFile): string[] =>
+  Array.from(
+    new Set([
+      ...(Array.isArray(config.managedCustomEnvKeys)
+        ? config.managedCustomEnvKeys
+        : []),
+      ...collectProviderCustomEnvKeys(config.providers)
+    ])
+  );
+
 export const createDefaultConfig = (): ConfigFile => ({
   version: CONFIG_VERSION,
   current: DEFAULT_PRESETS[0]?.id ?? null,
@@ -163,6 +189,11 @@ export const normalizeConfig = (config: ConfigFile): ConfigFile => {
   return {
     version: CONFIG_VERSION,
     current: config.current ? normalizeProviderId(config.current) : null,
+    managedCustomEnvKeys: Array.isArray(config.managedCustomEnvKeys)
+      ? config.managedCustomEnvKeys
+          .map((key) => (typeof key === "string" ? key.trim() : ""))
+          .filter(Boolean)
+      : undefined,
     providers: providersWithIds
   };
 };
