@@ -114,7 +114,13 @@ describe("server api", () => {
         body: {
         name: "local",
         baseUrl: "https://example.com",
-        authToken: "token"
+        authToken: "token",
+        customEnv: {
+          FOO_TOKEN: "bar",
+          EMPTY_VALUE: "",
+          ENABLE_TOOL_SEARCH: "false",
+          REQUEST_TIMEOUT_MS: "3000"
+        }
         },
         params: {}
       },
@@ -138,6 +144,10 @@ describe("server api", () => {
     expect(settings.env.ANTHROPIC_BASE_URL).toBe("https://example.com");
     expect(settings.env.ANTHROPIC_AUTH_TOKEN).toBe("token");
     expect(settings.env.ANTHROPIC_MODEL).toBeUndefined();
+    expect(settings.env.FOO_TOKEN).toBe("bar");
+    expect(settings.env.EMPTY_VALUE).toBe("");
+    expect(settings.env.ENABLE_TOOL_SEARCH).toBe(false);
+    expect(settings.env.REQUEST_TIMEOUT_MS).toBe(3000);
     expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
     expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
   });

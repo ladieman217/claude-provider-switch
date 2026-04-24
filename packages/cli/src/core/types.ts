@@ -22,6 +22,7 @@ export type ProviderConfig = {
   preset?: boolean;
   description?: string;
   website?: string;
+  customEnv?: Record<string, string>;
   modelMappings?: ModelMappingConfig;
 };
 

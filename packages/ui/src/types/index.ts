@@ -7,6 +7,7 @@ export interface Provider {
   preset?: boolean;
   description?: string;
   website?: string;
+  customEnv?: Record<string, string>;
   modelMappings?: ModelMappingConfig;
 }
 
@@ -46,4 +47,5 @@ export interface FormErrors {
   baseUrl?: string;
   authToken?: string;
   website?: string;
+  customEnv?: string;
 }

@@ -9,8 +9,28 @@ const BACKUP_NAME_PATTERN =
   /^settings\.backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/;
 
 export type ClaudeSettings = {
-  env?: Record<string, string>;
+  env?: Record<string, unknown>;
   [key: string]: unknown;
+};
+
+const parseCustomEnvValue = (value: unknown): unknown => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value.trim())) {
+    return Number(value);
+  }
+
+  return value;
 };
 
 export const readClaudeSettings = async (
@@ -139,7 +159,7 @@ export const applyProviderToClaudeSettings = async (
   const settings = await readClaudeSettings(options);
   const env =
     settings.env && typeof settings.env === "object"
-      ? { ...(settings.env as Record<string, string>) }
+      ? { ...(settings.env as Record<string, unknown>) }
       : {};
 
   const isAnthropic =
@@ -189,6 +209,15 @@ export const applyProviderToClaudeSettings = async (
       env.ANTHROPIC_DEFAULT_HAIKU_MODEL = mappings.defaultHaikuModel.trim();
     } else {
       delete env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
+    }
+
+    if (provider.customEnv && typeof provider.customEnv === "object") {
+      for (const [key, value] of Object.entries(provider.customEnv)) {
+        const envKey = key.trim();
+        if (envKey) {
+          env[envKey] = parseCustomEnvValue(value);
+        }
+      }
     }
   }
   env.API_TIMEOUT_MS = "3000000";

@@ -46,6 +46,23 @@ const formatProvider = (provider: ProviderConfig) => {
   return parts.join(" ");
 };
 
+const parseCustomEnvOptions = (values?: string[]): Record<string, string> | undefined => {
+  if (!values?.length) {
+    return undefined;
+  }
+
+  return values.reduce<Record<string, string>>((acc, item) => {
+    const separatorIndex = item.indexOf("=");
+    if (separatorIndex <= 0) {
+      throw new Error(`Invalid env '${item}'. Use KEY=VALUE.`);
+    }
+    const key = item.slice(0, separatorIndex).trim();
+    const value = item.slice(separatorIndex + 1);
+    acc[key] = value;
+    return acc;
+  }, {});
+};
+
 const findAvailablePort = async (start: number, attempts = 20) => {
   for (let i = 0; i < attempts; i += 1) {
     const port = start + i;
@@ -231,6 +248,7 @@ program
   .option("--model <model>", "Model name")
   .option("--website <url>", "Website URL")
   .option("--description <text>", "Description")
+  .option("--env <entry...>", "Custom environment variable (repeat or pass multiple KEY=VALUE values)")
   .description("Add a custom provider")
   .action(async (
     name: string,
@@ -242,6 +260,7 @@ program
       model?: string;
       website?: string;
       description?: string;
+      env?: string[];
     }
   ) => {
     if (options.token && options.tokenStdin) {
@@ -270,21 +289,27 @@ program
       process.exitCode = 1;
       return;
     }
-    const config = await ensureConfig();
-    const provider: ProviderConfig = {
-      id: options.id,
-      name,
-      baseUrl: options.baseUrl,
-      authToken,
-      model: options.model,
-      website: options.website,
-      description: options.description,
-      preset: false
-    };
+    try {
+      const config = await ensureConfig();
+      const provider: ProviderConfig = {
+        id: options.id,
+        name,
+        baseUrl: options.baseUrl,
+        authToken,
+        model: options.model,
+        website: options.website,
+        description: options.description,
+        customEnv: parseCustomEnvOptions(options.env),
+        preset: false
+      };
 
-    const nextConfig = addProvider(config, provider);
-    await saveConfig(nextConfig);
-    console.log(`Added provider '${name}'.`);
+      const nextConfig = addProvider(config, provider);
+      await saveConfig(nextConfig);
+      console.log(`Added provider '${name}'.`);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
   });
 
 program

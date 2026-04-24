@@ -6,6 +6,7 @@ import { readJsonFile, writeJsonFile } from "./fs";
 
 const CONFIG_VERSION = 1 as const;
 const PROVIDER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const normalizeProviderName = (name: string) => name.trim().toLowerCase();
 export const normalizeProviderId = (id: string) =>
@@ -59,6 +60,43 @@ const assertValidProviderId = (id: string) => {
   }
 };
 
+const normalizeCustomEnv = (
+  customEnv: ProviderConfig["customEnv"]
+): Record<string, string> | undefined => {
+  if (!customEnv || typeof customEnv !== "object" || Array.isArray(customEnv)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(customEnv).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      const normalizedKey = key.trim();
+      if (!normalizedKey) {
+        return acc;
+      }
+      acc[normalizedKey] = String(value);
+      return acc;
+    },
+    {}
+  );
+
+  return Object.keys(entries).length > 0 ? entries : undefined;
+};
+
+const assertValidCustomEnv = (customEnv: ProviderConfig["customEnv"]) => {
+  const normalized = normalizeCustomEnv(customEnv);
+  if (!normalized) {
+    return;
+  }
+
+  for (const key of Object.keys(normalized)) {
+    if (!ENV_KEY_PATTERN.test(key)) {
+      throw new Error(
+        `Environment variable '${key}' must start with a letter or underscore and contain only letters, numbers, and underscores.`
+      );
+    }
+  }
+};
+
 export const createDefaultConfig = (): ConfigFile => ({
   version: CONFIG_VERSION,
   current: DEFAULT_PRESETS[0]?.id ?? null,
@@ -102,7 +140,8 @@ export const normalizeConfig = (config: ConfigFile): ConfigFile => {
       id:
         typeof provider.id === "string"
           ? normalizeProviderId(provider.id)
-          : undefined
+          : undefined,
+      customEnv: normalizeCustomEnv(provider.customEnv)
     }));
 
   const uniqueProviders = new Map<string, ProviderConfig>();
@@ -184,6 +223,7 @@ export const assertValidProviderInput = (provider: ProviderConfig) => {
       throw new Error("Website must be a valid URL.");
     }
   }
+  assertValidCustomEnv(provider.customEnv);
 };
 
 export const assertProviderHasAuthToken = (provider: ProviderConfig) => {
@@ -239,6 +279,7 @@ export const addProvider = (
         ...provider,
         id: nextId,
         name: normalizedName,
+        customEnv: normalizeCustomEnv(provider.customEnv),
         modelMappings: provider.modelMappings,
         preset: false
       }
@@ -272,6 +313,10 @@ export const updateProvider = (
     authToken: nextAuthToken,
     model: updates.model !== undefined ? updates.model : target.model,
     website: updates.website !== undefined ? updates.website : target.website,
+    customEnv:
+      updates.customEnv !== undefined
+        ? normalizeCustomEnv(updates.customEnv)
+        : target.customEnv,
     description:
       updates.description !== undefined ? updates.description : target.description,
     modelMappings:
@@ -315,6 +360,10 @@ export const updateProviderById = (
     authToken: nextAuthToken,
     model: updates.model !== undefined ? updates.model : target.model,
     website: updates.website !== undefined ? updates.website : target.website,
+    customEnv:
+      updates.customEnv !== undefined
+        ? normalizeCustomEnv(updates.customEnv)
+        : target.customEnv,
     description:
       updates.description !== undefined ? updates.description : target.description,
     modelMappings:

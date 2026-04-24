@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 import { ModelMapping } from "./ModelMapping";
+import { Plus, Trash2 } from "lucide-react";
 import type { Provider, FormErrors } from "../types";
 
 interface ProviderFormProps {
@@ -25,6 +26,7 @@ const emptyForm: Provider = {
   model: "",
   description: "",
   website: "",
+  customEnv: {},
   modelMappings: {
     defaultModel: "",
     smallFastModel: "",
@@ -48,6 +50,36 @@ const isValidUrl = (value?: string) => {
 const isValidProviderId = (value: string) =>
   /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
+const isValidEnvKey = (value: string) =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
+
+type EnvRow = {
+  id: string;
+  key: string;
+  value: string;
+};
+
+const customEnvToRows = (customEnv?: Record<string, string>): EnvRow[] =>
+  Object.entries(customEnv ?? {}).map(([key, value]) => ({
+    id: `env-${key}`,
+    key,
+    value,
+  }));
+
+const rowsToCustomEnv = (rows: EnvRow[]): Record<string, string> =>
+  rows.reduce<Record<string, string>>((acc, row) => {
+    const key = row.key.trim();
+    if (key) {
+      acc[key] = row.value;
+    }
+    return acc;
+  }, {});
+
+const customEnvEquals = (
+  current: Record<string, string> | undefined,
+  original: Record<string, string> | undefined
+) => JSON.stringify(current ?? {}) === JSON.stringify(original ?? {});
+
 export function ProviderForm({
   editing,
   loading,
@@ -57,8 +89,10 @@ export function ProviderForm({
 }: ProviderFormProps) {
   const [form, setForm] = useState<Provider>(emptyForm);
   const [originalForm, setOriginalForm] = useState<Provider | null>(null);
+  const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const envRowId = useRef(0);
 
   // Sync form with editing prop
   useEffect(() => {
@@ -71,6 +105,7 @@ export function ProviderForm({
         model: editing.model ?? "",
         description: editing.description ?? "",
         website: editing.website ?? "",
+        customEnv: editing.customEnv ?? {},
         modelMappings: editing.modelMappings || {
           defaultModel: "",
           smallFastModel: "",
@@ -82,9 +117,11 @@ export function ProviderForm({
       };
       setForm(initialForm);
       setOriginalForm(initialForm);
+      setEnvRows(customEnvToRows(initialForm.customEnv));
     } else {
       setForm(emptyForm);
       setOriginalForm(null);
+      setEnvRows([]);
     }
     setErrors({});
     setTouched({});
@@ -119,8 +156,30 @@ export function ProviderForm({
       errs.website = t('form.websiteInvalid');
     }
 
+    const envKeys = new Set<string>();
+    for (const row of envRows) {
+      const key = row.key.trim();
+      const hasValue = row.value.length > 0;
+      if (!key && !hasValue) {
+        continue;
+      }
+      if (!key) {
+        errs.customEnv = t('form.customEnvKeyRequired');
+        break;
+      }
+      if (!isValidEnvKey(key)) {
+        errs.customEnv = t('form.customEnvKeyInvalid');
+        break;
+      }
+      if (envKeys.has(key)) {
+        errs.customEnv = t('form.customEnvKeyDuplicate');
+        break;
+      }
+      envKeys.add(key);
+    }
+
     return errs;
-  }, [form, editing, t]);
+  }, [form, envRows, editing, t]);
 
   const isValid = Object.keys(validate).length === 0;
 
@@ -137,6 +196,34 @@ export function ProviderForm({
     setErrors(validate);
   };
 
+  const handleAddEnvRow = () => {
+    envRowId.current += 1;
+    setEnvRows((prev) => [
+      ...prev,
+      { id: `env-new-${envRowId.current}`, key: "", value: "" },
+    ]);
+  };
+
+  const handleEnvRowChange = (
+    id: string,
+    field: "key" | "value",
+    value: string
+  ) => {
+    setEnvRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+    if (errors.customEnv) {
+      setErrors((prev) => ({ ...prev, customEnv: undefined }));
+    }
+  };
+
+  const handleRemoveEnvRow = (id: string) => {
+    setEnvRows((prev) => prev.filter((row) => row.id !== id));
+    if (errors.customEnv) {
+      setErrors((prev) => ({ ...prev, customEnv: undefined }));
+    }
+  };
+
   const handleSubmit = () => {
     setTouched({
       name: true,
@@ -144,6 +231,7 @@ export function ProviderForm({
       baseUrl: true,
       authToken: true,
       website: true,
+      customEnv: true,
     });
 
     if (!isValid) {
@@ -159,6 +247,7 @@ export function ProviderForm({
       model: form.model?.trim() || "",
       description: form.description?.trim() || "",
       website: form.website?.trim() || "",
+      customEnv: rowsToCustomEnv(envRows),
       modelMappings: form.modelMappings,
     };
 
@@ -169,9 +258,11 @@ export function ProviderForm({
     if (editing && originalForm) {
       // 编辑状态下重置为原始值
       setForm(originalForm);
+      setEnvRows(customEnvToRows(originalForm.customEnv));
     } else {
       // 新增状态下清空表单
       setForm(emptyForm);
+      setEnvRows([]);
     }
     setErrors({});
     setTouched({});
@@ -180,6 +271,7 @@ export function ProviderForm({
   const handleCancel = () => {
     setForm(emptyForm);
     setOriginalForm(null);
+    setEnvRows([]);
     setErrors({});
     setTouched({});
     onCancel();
@@ -190,7 +282,8 @@ export function ProviderForm({
     form.model !== originalForm.model ||
     form.website !== originalForm.website ||
     form.description !== originalForm.description ||
-    form.authToken !== originalForm.authToken
+    form.authToken !== originalForm.authToken ||
+    !customEnvEquals(rowsToCustomEnv(envRows), originalForm.customEnv)
   );
 
   return (
@@ -331,6 +424,80 @@ export function ProviderForm({
           </p>
           {touched.id && errors.id && (
             <p className="text-xs text-coral-400">{errors.id}</p>
+          )}
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-sand-200/10">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-sand-100">
+                {t('form.customEnv')}
+              </h3>
+              <Badge variant="outline" className="text-xs text-sand-200/50">
+                {t('form.customEnvOptional')}
+              </Badge>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddEnvRow}
+              disabled={loading}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {t('form.customEnvAdd')}
+            </Button>
+          </div>
+
+          {envRows.length > 0 ? (
+            <div className="space-y-2">
+              {envRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem] gap-2"
+                >
+                  <Input
+                    value={row.key}
+                    onChange={(e) =>
+                      handleEnvRowChange(row.id, "key", e.target.value)
+                    }
+                    onBlur={() => handleBlur("customEnv")}
+                    placeholder={t('form.customEnvKey')}
+                    className={cn(
+                      touched.customEnv &&
+                        errors.customEnv &&
+                        "border-coral-400 focus-visible:ring-coral-400/50"
+                    )}
+                  />
+                  <Input
+                    value={row.value}
+                    onChange={(e) =>
+                      handleEnvRowChange(row.id, "value", e.target.value)
+                    }
+                    onBlur={() => handleBlur("customEnv")}
+                    placeholder={t('form.customEnvValue')}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-9 text-coral-400 hover:text-coral-300 hover:bg-coral-400/10"
+                    onClick={() => handleRemoveEnvRow(row.id)}
+                    disabled={loading}
+                    aria-label={t('form.customEnvRemove')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-sand-200/40">
+              {t('form.customEnvEmpty')}
+            </p>
+          )}
+          {touched.customEnv && errors.customEnv && (
+            <p className="text-xs text-coral-400">{errors.customEnv}</p>
           )}
         </div>
 
