@@ -13,8 +13,10 @@ import {
   applyProviderToClaudeSettings,
   collectCustomEnvKeysToClear,
   collectProviderCustomEnvKeys,
+  DEFAULT_PRESETS,
   ensureConfig,
   findProviderById,
+  findProviderByReference,
   removeProvider,
   saveConfig,
   setCurrentProviderById
@@ -330,8 +332,30 @@ program
   .description("Remove a provider by id or name")
   .action(async (reference: string) => {
     const config = await ensureConfig();
+    const target = findProviderByReference(config, reference);
     const nextConfig = removeProvider(config, reference);
-    await saveConfig(nextConfig);
+    const wasCurrentProvider =
+      Boolean(target?.id) && target?.id === config.current;
+    const customEnvKeysToClear = Array.from(
+      new Set([
+        ...collectCustomEnvKeysToClear(config),
+        ...collectCustomEnvKeysToClear(nextConfig),
+        ...collectProviderCustomEnvKeys(target ? [target] : [])
+      ])
+    );
+    const configToSave = {
+      ...nextConfig,
+      managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+    };
+
+    await saveConfig(configToSave);
+    if (wasCurrentProvider) {
+      await applyProviderToClaudeSettings(
+        DEFAULT_PRESETS[0] ?? { name: "anthropic" },
+        {},
+        customEnvKeysToClear
+      );
+    }
     console.log(`Removed provider '${reference}'.`);
   });
 

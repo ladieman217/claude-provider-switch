@@ -107,6 +107,7 @@ describe("server api", () => {
     const postProviders = getRouteHandler(app, "post", "/api/providers");
     const getProviders = getRouteHandler(app, "get", "/api/providers");
     const putProvider = getRouteHandler(app, "put", "/api/providers/:id");
+    const deleteProvider = getRouteHandler(app, "delete", "/api/providers/:id");
     const postCurrent = getRouteHandler(app, "post", "/api/current");
 
     const createRes = createMockResponse();
@@ -168,8 +169,8 @@ describe("server api", () => {
     expect(settings.env.ANTHROPIC_MODEL).toBeUndefined();
     expect(settings.env.FOO_TOKEN).toBe("bar");
     expect(settings.env.EMPTY_VALUE).toBe("");
-    expect(settings.env.ENABLE_TOOL_SEARCH).toBe(false);
-    expect(settings.env.REQUEST_TIMEOUT_MS).toBe(3000);
+    expect(settings.env.ENABLE_TOOL_SEARCH).toBe("false");
+    expect(settings.env.REQUEST_TIMEOUT_MS).toBe("3000");
     expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
     expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe("1");
 
@@ -187,6 +188,14 @@ describe("server api", () => {
     );
     expect(updateLocalRes.statusCode).toBe(200);
 
+    const updatedLocalSettings = JSON.parse(
+      await fs.readFile(claudeSettingsPath, "utf8")
+    );
+    expect(updatedLocalSettings.env.FOO_TOKEN).toBeUndefined();
+    expect(updatedLocalSettings.env.EMPTY_VALUE).toBeUndefined();
+    expect(updatedLocalSettings.env.ENABLE_TOOL_SEARCH).toBeUndefined();
+    expect(updatedLocalSettings.env.REQUEST_TIMEOUT_MS).toBeUndefined();
+
     const setRemoteRes = createMockResponse();
     await postCurrent({ body: { name: remote?.id }, params: {} }, setRemoteRes);
     expect(setRemoteRes.statusCode).toBe(200);
@@ -196,7 +205,21 @@ describe("server api", () => {
     expect(remoteSettings.env.EMPTY_VALUE).toBeUndefined();
     expect(remoteSettings.env.ENABLE_TOOL_SEARCH).toBeUndefined();
     expect(remoteSettings.env.REQUEST_TIMEOUT_MS).toBeUndefined();
-    expect(remoteSettings.env.ENABLE_REMOTE).toBe(true);
+    expect(remoteSettings.env.ENABLE_REMOTE).toBe("true");
+
+    const deleteRemoteRes = createMockResponse();
+    await deleteProvider(
+      { body: {}, params: { id: remote?.id } },
+      deleteRemoteRes
+    );
+    expect(deleteRemoteRes.statusCode).toBe(200);
+
+    const deletedRemoteSettings = JSON.parse(
+      await fs.readFile(claudeSettingsPath, "utf8")
+    );
+    expect(deletedRemoteSettings.env.ENABLE_REMOTE).toBeUndefined();
+    expect(deletedRemoteSettings.env.ANTHROPIC_BASE_URL).toBeUndefined();
+    expect(deletedRemoteSettings.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
   });
 
   it("accepts user-defined provider id", async () => {

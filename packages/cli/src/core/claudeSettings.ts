@@ -9,28 +9,8 @@ const BACKUP_NAME_PATTERN =
   /^settings\.backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/;
 
 export type ClaudeSettings = {
-  env?: Record<string, unknown>;
+  env?: Record<string, string>;
   [key: string]: unknown;
-};
-
-const parseCustomEnvValue = (value: unknown): unknown => {
-  if (typeof value !== "string") {
-    return value;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "true") {
-    return true;
-  }
-  if (normalized === "false") {
-    return false;
-  }
-
-  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value.trim())) {
-    return Number(value);
-  }
-
-  return value;
 };
 
 export const readClaudeSettings = async (
@@ -160,7 +140,7 @@ export const applyProviderToClaudeSettings = async (
   const settings = await readClaudeSettings(options);
   const env =
     settings.env && typeof settings.env === "object"
-      ? { ...(settings.env as Record<string, unknown>) }
+      ? { ...(settings.env as Record<string, string>) }
       : {};
 
   const isAnthropic =
@@ -223,7 +203,7 @@ export const applyProviderToClaudeSettings = async (
       for (const [key, value] of Object.entries(provider.customEnv)) {
         const envKey = key.trim();
         if (envKey) {
-          env[envKey] = parseCustomEnvValue(value);
+          env[envKey] = String(value);
         }
       }
     }
