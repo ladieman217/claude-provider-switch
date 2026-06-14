@@ -146,6 +146,15 @@ export const applyProviderToClaudeSettings = async (
   const isAnthropic =
     provider.name && provider.name.trim().toLowerCase() === "anthropic";
 
+  // Clear previously-managed custom env keys for both provider types before
+  // (re)applying this provider's own customEnv below.
+  for (const key of customEnvKeysToClear) {
+    const envKey = key.trim();
+    if (envKey) {
+      delete env[envKey];
+    }
+  }
+
   if (isAnthropic) {
     delete env.ANTHROPIC_BASE_URL;
     delete env.ANTHROPIC_AUTH_TOKEN;
@@ -192,27 +201,12 @@ export const applyProviderToClaudeSettings = async (
       delete env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
     }
 
-    for (const key of customEnvKeysToClear) {
-      const envKey = key.trim();
-      if (envKey) {
-        delete env[envKey];
-      }
-    }
-
     if (provider.customEnv && typeof provider.customEnv === "object") {
       for (const [key, value] of Object.entries(provider.customEnv)) {
         const envKey = key.trim();
         if (envKey) {
           env[envKey] = String(value);
         }
-      }
-    }
-  }
-  if (isAnthropic) {
-    for (const key of customEnvKeysToClear) {
-      const envKey = key.trim();
-      if (envKey) {
-        delete env[envKey];
       }
     }
   }

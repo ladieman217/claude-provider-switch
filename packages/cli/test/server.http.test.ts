@@ -65,7 +65,7 @@ describeHttp("server http integration", () => {
 
       const createRes = await fetch(`${baseUrl}/api/providers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Origin: baseUrl },
         body: JSON.stringify({
           name: "local",
           baseUrl: "https://example.com",
@@ -85,7 +85,7 @@ describeHttp("server http integration", () => {
 
       const setCurrentRes = await fetch(`${baseUrl}/api/current`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Origin: baseUrl },
         body: JSON.stringify({ name: "local" })
       });
       expect(setCurrentRes.status).toBe(200);

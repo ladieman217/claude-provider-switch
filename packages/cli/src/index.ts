@@ -373,17 +373,21 @@ program
       console.log(`[cps] Port ${preferredPort} is in use, using port ${port}`);
     }
     
-    const server = await startServer({ uiDistPath: defaultUiDist }, port);
+    let server: Awaited<ReturnType<typeof startServer>>;
+    try {
+      server = await startServer({ uiDistPath: defaultUiDist }, port);
+    } catch (err) {
+      console.error("[cps] Server error:", (err as Error).message);
+      process.exit(1);
+    }
 
-    server.on("listening", () => {
-      const localUrl = `http://localhost:${port}`;
-      console.log("[cps] Server ready!");
-      console.log(`[cps] Local URL: ${localUrl}`);
-      console.log("[cps] Press Ctrl+C to stop");
-      if (!process.env.CPS_NO_BROWSER) {
-        void openBrowser(localUrl);
-      }
-    });
+    const localUrl = `http://localhost:${port}`;
+    console.log("[cps] Server ready!");
+    console.log(`[cps] Local URL: ${localUrl}`);
+    console.log("[cps] Press Ctrl+C to stop");
+    if (!process.env.CPS_NO_BROWSER) {
+      void openBrowser(localUrl);
+    }
 
     server.on("error", (err) => {
       console.error("[cps] Server error:", err.message);
