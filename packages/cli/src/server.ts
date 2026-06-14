@@ -48,6 +48,55 @@ export const sanitizeProvidersForResponse = (
 
 const loadConfig = async (options: PathsOptions) => ensureConfig(options);
 
+const ALLOWED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+const extractHostname = (hostHeader: string): string => {
+  const value = hostHeader.trim();
+  // IPv6 literal: [::1]:port
+  if (value.startsWith("[")) {
+    const end = value.indexOf("]");
+    return end === -1 ? value : value.slice(0, end + 1);
+  }
+  const colon = value.lastIndexOf(":");
+  return colon === -1 ? value : value.slice(0, colon);
+};
+
+const isAllowedHost = (hostHeader?: string): boolean => {
+  if (!hostHeader) {
+    return false;
+  }
+  return ALLOWED_HOSTNAMES.has(extractHostname(hostHeader));
+};
+
+const isAllowedOrigin = (origin?: string): boolean => {
+  if (!origin) {
+    return false;
+  }
+  try {
+    return ALLOWED_HOSTNAMES.has(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+};
+
+// Guards a localhost-only API that mutates secrets against CSRF / DNS rebinding.
+// Host check blocks DNS-rebinding (attacker domain as Host); Origin check blocks
+// cross-site requests from a malicious page to the loopback server.
+const localOnlyGuard: express.RequestHandler = (req, res, next) => {
+  if (!isAllowedHost(req.headers.host)) {
+    res.status(403).json({ error: "Forbidden host." });
+    return;
+  }
+
+  const isMutation = req.method !== "GET" && req.method !== "HEAD";
+  if (isMutation && !isAllowedOrigin(req.headers.origin)) {
+    res.status(403).json({ error: "Forbidden origin." });
+    return;
+  }
+
+  next();
+};
+
 const resolveUiDist = async (uiDistPath?: string) => {
   if (!uiDistPath) {
     return null;
@@ -80,6 +129,8 @@ export const createApp = async (
     });
     next();
   });
+
+  app.use("/api", localOnlyGuard);
 
   app.get("/api/providers", async (_req, res) => {
     try {
@@ -291,5 +342,12 @@ export const startServer = async (
   port: number
 ): Promise<Server> => {
   const app = await createApp(options);
-  return app.listen(port, "127.0.0.1");
+  return await new Promise<Server>((resolve, reject) => {
+    const server = app.listen(port, "127.0.0.1");
+    server.once("error", reject);
+    server.once("listening", () => {
+      server.removeListener("error", reject);
+      resolve(server);
+    });
+  });
 };
