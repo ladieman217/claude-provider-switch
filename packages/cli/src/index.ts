@@ -1,12 +1,9 @@
 import { Command } from "commander";
 import path from "path";
 import net from "net";
-import { exec } from "child_process";
-import { promisify } from "util";
 import readline from "node:readline/promises";
 import packageJson from "../package.json";
 
-const execAsync = promisify(exec);
 import {
   addProvider,
   assertProviderHasAuthToken,
@@ -22,6 +19,7 @@ import {
   setCurrentProviderById
 } from "./core";
 import type { ProviderConfig } from "./core";
+import { openBrowser } from "./browser";
 import { startServer } from "./server";
 
 const defaultUiDist = path.resolve(__dirname, "ui");
@@ -85,28 +83,6 @@ const findAvailablePort = async (start: number, attempts = 20) => {
   }
 
   throw new Error("No available port found.");
-};
-
-const openBrowser = async (url: string) => {
-  const platform = process.platform;
-  let command: string;
-
-  switch (platform) {
-    case "darwin":
-      command = `open "${url}"`;
-      break;
-    case "win32":
-      command = `start "" "${url}"`;
-      break;
-    default:
-      command = `xdg-open "${url}"`;
-  }
-
-  try {
-    await execAsync(command);
-  } catch {
-    // Silently fail - opening browser is not critical
-  }
 };
 
 const applyProviderById = async (id: string): Promise<ProviderConfig> => {
