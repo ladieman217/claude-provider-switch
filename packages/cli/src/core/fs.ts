@@ -1,4 +1,6 @@
 import fs from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
 
 export const readJsonFile = async <T>(filePath: string): Promise<T> => {
   const raw = await fs.readFile(filePath, "utf8");
@@ -13,8 +15,22 @@ export const ensureOwnerOnlyFile = async (filePath: string) => {
   }
 };
 
+export const writeFileAtomically = async (filePath: string, content: string) => {
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`
+  );
+
+  try {
+    await fs.writeFile(tempPath, content, { encoding: "utf8", mode: 0o600 });
+    await ensureOwnerOnlyFile(tempPath);
+    await fs.rename(tempPath, filePath);
+    await ensureOwnerOnlyFile(filePath);
+  } finally {
+    await fs.rm(tempPath, { force: true }).catch(() => undefined);
+  }
+};
+
 export const writeJsonFile = async (filePath: string, data: unknown) => {
-  const content = `${JSON.stringify(data, null, 2)}\n`;
-  await fs.writeFile(filePath, content, { encoding: "utf8", mode: 0o600 });
-  await ensureOwnerOnlyFile(filePath);
+  await writeFileAtomically(filePath, `${JSON.stringify(data, null, 2)}\n`);
 };

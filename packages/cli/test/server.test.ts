@@ -51,6 +51,107 @@ const getRouteHandler = (
 };
 
 describe("server api", () => {
+  it("serializes concurrent provider mutations", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const app = await createApp({ configDir, configPath });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const getProviders = getRouteHandler(app, "get", "/api/providers");
+    const firstRes = createMockResponse();
+    const secondRes = createMockResponse();
+
+    await Promise.all([
+      postProviders(
+        {
+          body: {
+            name: "first",
+            baseUrl: "https://first.example.com",
+            authToken: "first-token"
+          },
+          params: {}
+        },
+        firstRes
+      ),
+      postProviders(
+        {
+          body: {
+            name: "second",
+            baseUrl: "https://second.example.com",
+            authToken: "second-token"
+          },
+          params: {}
+        },
+        secondRes
+      )
+    ]);
+
+    expect(firstRes.statusCode).toBe(201);
+    expect(secondRes.statusCode).toBe(201);
+
+    const listRes = createMockResponse();
+    await getProviders({ body: {}, params: {} }, listRes);
+    const names = (listRes.body as { providers: Array<{ name: string }> })
+      .providers.map((provider) => provider.name);
+    expect(names).toEqual(expect.arrayContaining(["first", "second"]));
+  });
+
+  it("does not persist an active-provider update when settings cannot be applied", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const claudeDir = path.join(tempDir, "claude");
+    const claudeSettingsPath = path.join(claudeDir, "settings.json");
+    const app = await createApp({
+      configDir,
+      configPath,
+      claudeDir,
+      claudeSettingsPath
+    });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const getProviders = getRouteHandler(app, "get", "/api/providers");
+    const postCurrent = getRouteHandler(app, "post", "/api/current");
+    const putProvider = getRouteHandler(app, "put", "/api/providers/:id");
+
+    const createRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          name: "local",
+          baseUrl: "https://original.example.com",
+          authToken: "token"
+        },
+        params: {}
+      },
+      createRes
+    );
+
+    const listRes = createMockResponse();
+    await getProviders({ body: {}, params: {} }, listRes);
+    const provider = (listRes.body as { providers: Array<{ id: string }> })
+      .providers.find((item) => item.id === "local");
+    expect(provider?.id).toBeTruthy();
+
+    const setCurrentRes = createMockResponse();
+    await postCurrent({ body: { id: provider?.id }, params: {} }, setCurrentRes);
+    expect(setCurrentRes.statusCode).toBe(200);
+
+    await fs.writeFile(claudeSettingsPath, "{");
+    const updateRes = createMockResponse();
+    await putProvider(
+      {
+        body: { baseUrl: "https://changed.example.com", authToken: "" },
+        params: { id: provider?.id }
+      },
+      updateRes
+    );
+    expect(updateRes.statusCode).toBe(400);
+
+    const persistedConfig = JSON.parse(await fs.readFile(configPath, "utf8"));
+    expect(persistedConfig.providers.find((item: { id: string }) => item.id === provider?.id)
+      .baseUrl).toBe("https://original.example.com");
+  });
+
   it("creates, lists, and deletes providers", async () => {
     const tempDir = await makeTempDir();
     const configDir = path.join(tempDir, "config");
