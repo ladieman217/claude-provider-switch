@@ -2,7 +2,12 @@ import fs from "fs/promises";
 import path from "path";
 import { resolvePaths } from "./paths";
 import { PathsOptions, ProviderConfig } from "./types";
-import { ensureOwnerOnlyFile, readJsonFile, writeJsonFile } from "./fs";
+import {
+  ensureOwnerOnlyFile,
+  readJsonFile,
+  writeFileAtomically,
+  writeJsonFile
+} from "./fs";
 
 const BACKUP_PREFIX = "settings.backup-";
 const BACKUP_NAME_PATTERN =
@@ -125,8 +130,10 @@ export const restoreClaudeSettingsBackup = async (
 
   await fs.mkdir(backupDir, { recursive: true, mode: 0o700 });
   await backupClaudeSettings(claudeSettingsPath, backupDir);
-  await fs.copyFile(backupPath, claudeSettingsPath);
-  await ensureOwnerOnlyFile(claudeSettingsPath);
+  await writeFileAtomically(
+    claudeSettingsPath,
+    await fs.readFile(backupPath, "utf8")
+  );
 };
 
 export const applyProviderToClaudeSettings = async (
