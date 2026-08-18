@@ -20,6 +20,8 @@ export const normalizeProviderId = (id: string) =>
 const isAnthropicName = (name: string) => normalizeProviderName(name) === "anthropic";
 const isAnthropicProvider = (provider: ProviderConfig) =>
   isAnthropicName(provider.name);
+const isHttpUrl = (url: URL) =>
+  url.protocol === "http:" || url.protocol === "https:";
 
 const toProviderIdBase = (provider: ProviderConfig) => {
   const explicitId =
@@ -242,16 +244,24 @@ export const assertValidProviderInput = (provider: ProviderConfig) => {
   if (!provider.authToken || !provider.authToken.trim()) {
     throw new Error("Auth token is required.");
   }
+  let baseUrl: URL;
   try {
-    new URL(provider.baseUrl);
+    baseUrl = new URL(provider.baseUrl);
   } catch {
     throw new Error("Base URL must be a valid URL.");
   }
+  if (!isHttpUrl(baseUrl)) {
+    throw new Error("Base URL must use http or https.");
+  }
   if (provider.website) {
+    let website: URL;
     try {
-      new URL(provider.website);
+      website = new URL(provider.website);
     } catch {
       throw new Error("Website must be a valid URL.");
+    }
+    if (!isHttpUrl(website)) {
+      throw new Error("Website must use http or https.");
     }
   }
   assertValidCustomEnv(provider.customEnv);
