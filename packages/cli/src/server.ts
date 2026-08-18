@@ -48,6 +48,28 @@ export const sanitizeProvidersForResponse = (
 
 const loadConfig = async (options: PathsOptions) => ensureConfig(options);
 
+const saveConfigAndApplyProvider = async (
+  previousConfig: Awaited<ReturnType<typeof loadConfig>>,
+  nextConfig: Awaited<ReturnType<typeof loadConfig>>,
+  provider: ProviderConfig,
+  options: PathsOptions,
+  customEnvKeysToClear: Iterable<string>
+) => {
+  await saveConfig(nextConfig, options);
+  try {
+    await applyProviderToClaudeSettings(provider, options, customEnvKeysToClear);
+  } catch (error) {
+    try {
+      await saveConfig(previousConfig, options);
+    } catch (rollbackError) {
+      throw new Error(
+        `Failed to apply provider and restore the previous configuration: ${(rollbackError as Error).message}`
+      );
+    }
+    throw error;
+  }
+};
+
 const resolveUiDist = async (uiDistPath?: string) => {
   if (!uiDistPath) {
     return null;
@@ -69,6 +91,20 @@ export const createApp = async (
   options: ServerOptions = {}
 ): Promise<express.Express> => {
   const app = express();
+  let pendingMutation = Promise.resolve();
+  const withMutationLock = async <T>(operation: () => Promise<T>): Promise<T> => {
+    const previousMutation = pendingMutation;
+    let release: (() => void) | undefined;
+    pendingMutation = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previousMutation;
+    try {
+      return await operation();
+    } finally {
+      release?.();
+    }
+  };
   app.use(express.json());
 
   // Request logging middleware
@@ -95,13 +131,15 @@ export const createApp = async (
 
   app.post("/api/providers", async (req, res) => {
     try {
-      const config = await loadConfig(options);
-      const payload = req.body as ProviderConfig;
-      const nextConfig = addProvider(config, payload);
-      await saveConfig(nextConfig, options);
-      res
-        .status(201)
-        .json({ providers: sanitizeProvidersForResponse(nextConfig.providers) });
+      await withMutationLock(async () => {
+        const config = await loadConfig(options);
+        const payload = req.body as ProviderConfig;
+        const nextConfig = addProvider(config, payload);
+        await saveConfig(nextConfig, options);
+        res
+          .status(201)
+          .json({ providers: sanitizeProvidersForResponse(nextConfig.providers) });
+      });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -109,38 +147,42 @@ export const createApp = async (
 
   app.put("/api/providers/:id", async (req, res) => {
     try {
-      const config = await loadConfig(options);
-      const updates = req.body as ProviderConfig;
-      const target = findProviderById(config, req.params.id);
-      const nextConfig = updateProviderById(config, req.params.id, updates);
-      const updatedProvider = findProviderById(nextConfig, req.params.id);
-      const isCurrentProvider =
-        Boolean(updatedProvider?.id) && updatedProvider?.id === nextConfig.current;
+      await withMutationLock(async () => {
+        const config = await loadConfig(options);
+        const updates = req.body as ProviderConfig;
+        const target = findProviderById(config, req.params.id);
+        const nextConfig = updateProviderById(config, req.params.id, updates);
+        const updatedProvider = findProviderById(nextConfig, req.params.id);
+        const isCurrentProvider =
+          Boolean(updatedProvider?.id) && updatedProvider?.id === nextConfig.current;
 
-      const customEnvKeysToClear = Array.from(
-        new Set([
-          ...collectCustomEnvKeysToClear(config),
-          ...collectCustomEnvKeysToClear(nextConfig),
-          ...collectProviderCustomEnvKeys(target ? [target] : [])
-        ])
-      );
-      const configToSave = {
-        ...nextConfig,
-        managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
-      };
-
-      await saveConfig(configToSave, options);
-
-      if (isCurrentProvider && updatedProvider) {
-        assertProviderHasAuthToken(updatedProvider);
-        await applyProviderToClaudeSettings(
-          updatedProvider,
-          options,
-          customEnvKeysToClear
+        const customEnvKeysToClear = Array.from(
+          new Set([
+            ...collectCustomEnvKeysToClear(config),
+            ...collectCustomEnvKeysToClear(nextConfig),
+            ...collectProviderCustomEnvKeys(target ? [target] : [])
+          ])
         );
-      }
+        const configToSave = {
+          ...nextConfig,
+          managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+        };
 
-      res.json({ providers: sanitizeProvidersForResponse(configToSave.providers) });
+        if (isCurrentProvider && updatedProvider) {
+          assertProviderHasAuthToken(updatedProvider);
+          await saveConfigAndApplyProvider(
+            config,
+            configToSave,
+            updatedProvider,
+            options,
+            customEnvKeysToClear
+          );
+        } else {
+          await saveConfig(configToSave, options);
+        }
+
+        res.json({ providers: sanitizeProvidersForResponse(configToSave.providers) });
+      });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -148,36 +190,40 @@ export const createApp = async (
 
   app.delete("/api/providers/:id", async (req, res) => {
     try {
-      const config = await loadConfig(options);
-      const target = findProviderById(config, req.params.id);
-      const nextConfig = removeProviderById(config, req.params.id);
-      const wasCurrentProvider =
-        Boolean(target?.id) && target?.id === config.current;
-      const customEnvKeysToClear = Array.from(
-        new Set([
-          ...collectCustomEnvKeysToClear(config),
-          ...collectCustomEnvKeysToClear(nextConfig),
-          ...collectProviderCustomEnvKeys(target ? [target] : [])
-        ])
-      );
-      const configToSave = {
-        ...nextConfig,
-        managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
-      };
-
-      await saveConfig(configToSave, options);
-
-      if (wasCurrentProvider) {
-        await applyProviderToClaudeSettings(
-          DEFAULT_PRESETS[0] ?? { name: "anthropic" },
-          options,
-          customEnvKeysToClear
+      await withMutationLock(async () => {
+        const config = await loadConfig(options);
+        const target = findProviderById(config, req.params.id);
+        const nextConfig = removeProviderById(config, req.params.id);
+        const wasCurrentProvider =
+          Boolean(target?.id) && target?.id === config.current;
+        const customEnvKeysToClear = Array.from(
+          new Set([
+            ...collectCustomEnvKeysToClear(config),
+            ...collectCustomEnvKeysToClear(nextConfig),
+            ...collectProviderCustomEnvKeys(target ? [target] : [])
+          ])
         );
-      }
+        const configToSave = {
+          ...nextConfig,
+          managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+        };
 
-      res.json({
-        providers: sanitizeProvidersForResponse(configToSave.providers),
-        current: configToSave.current
+        if (wasCurrentProvider) {
+          await saveConfigAndApplyProvider(
+            config,
+            configToSave,
+            DEFAULT_PRESETS[0] ?? { name: "anthropic" },
+            options,
+            customEnvKeysToClear
+          );
+        } else {
+          await saveConfig(configToSave, options);
+        }
+
+        res.json({
+          providers: sanitizeProvidersForResponse(configToSave.providers),
+          current: configToSave.current
+        });
       });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
@@ -210,13 +256,15 @@ export const createApp = async (
 
   app.post("/api/backups/restore", async (req, res) => {
     try {
-      const { name } = req.body as { name?: string };
-      if (!name) {
-        res.status(400).json({ error: "Backup name is required." });
-        return;
-      }
-      await restoreClaudeSettingsBackup(name, options);
-      res.json({ restored: true });
+      await withMutationLock(async () => {
+        const { name } = req.body as { name?: string };
+        if (!name) {
+          res.status(400).json({ error: "Backup name is required." });
+          return;
+        }
+        await restoreClaudeSettingsBackup(name, options);
+        res.json({ restored: true });
+      });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }
@@ -224,43 +272,46 @@ export const createApp = async (
 
   app.post("/api/current", async (req, res) => {
     try {
-      const config = await loadConfig(options);
-      const { id, name } = req.body as { id?: string; name?: string };
-      const reference = id ?? name;
-      if (!reference) {
-        res.status(400).json({ error: "Provider id is required." });
-        return;
-      }
+      await withMutationLock(async () => {
+        const config = await loadConfig(options);
+        const { id, name } = req.body as { id?: string; name?: string };
+        const reference = id ?? name;
+        if (!reference) {
+          res.status(400).json({ error: "Provider id is required." });
+          return;
+        }
 
-      const nextConfig = setCurrentProvider(config, reference);
-      const provider = findProviderByReference(nextConfig, reference);
-      if (!provider) {
-        res.status(404).json({ error: "Provider not found." });
-        return;
-      }
+        const nextConfig = setCurrentProvider(config, reference);
+        const provider = findProviderByReference(nextConfig, reference);
+        if (!provider) {
+          res.status(404).json({ error: "Provider not found." });
+          return;
+        }
 
-      try {
-        assertProviderHasAuthToken(provider);
-      } catch (error) {
-        res.status(400).json({ error: (error as Error).message });
-        return;
-      }
+        try {
+          assertProviderHasAuthToken(provider);
+        } catch (error) {
+          res.status(400).json({ error: (error as Error).message });
+          return;
+        }
 
-      const customEnvKeysToClear = collectCustomEnvKeysToClear(nextConfig);
-      const configToSave = {
-        ...nextConfig,
-        managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
-      };
-      await saveConfig(configToSave, options);
-      await applyProviderToClaudeSettings(
-        provider,
-        options,
-        customEnvKeysToClear
-      );
+        const customEnvKeysToClear = collectCustomEnvKeysToClear(nextConfig);
+        const configToSave = {
+          ...nextConfig,
+          managedCustomEnvKeys: collectProviderCustomEnvKeys(nextConfig.providers)
+        };
+        await saveConfigAndApplyProvider(
+          config,
+          configToSave,
+          provider,
+          options,
+          customEnvKeysToClear
+        );
 
-      res.json({
-        current: configToSave.current,
-        provider: sanitizeProviderForResponse(provider)
+        res.json({
+          current: configToSave.current,
+          provider: sanitizeProviderForResponse(provider)
+        });
       });
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });

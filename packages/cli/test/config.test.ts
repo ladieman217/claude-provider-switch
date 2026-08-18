@@ -44,4 +44,16 @@ describe("config", () => {
       })
     ).toThrow("Environment variable");
   });
+
+  it("rejects non-HTTP provider URLs", () => {
+    const config = createDefaultConfig();
+
+    expect(() =>
+      addProvider(config, {
+        name: "local",
+        baseUrl: "file:///tmp/provider",
+        authToken: "token"
+      })
+    ).toThrow("Base URL must use http or https");
+  });
 });

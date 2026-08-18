@@ -333,4 +333,42 @@ describe("server api", () => {
     expect(settings.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBeUndefined();
     expect(settings.env.API_TIMEOUT_MS).toBe("3000000");
   });
+
+  it("restores the previous config when applying settings fails", async () => {
+    const tempDir = await makeTempDir();
+    const configDir = path.join(tempDir, "config");
+    const configPath = path.join(configDir, "config.json");
+    const claudeDir = path.join(tempDir, "claude");
+    const claudeSettingsPath = path.join(claudeDir, "settings.json");
+    await fs.mkdir(claudeSettingsPath, { recursive: true });
+
+    const app = await createApp({
+      configDir,
+      configPath,
+      claudeDir,
+      claudeSettingsPath
+    });
+    const postProviders = getRouteHandler(app, "post", "/api/providers");
+    const postCurrent = getRouteHandler(app, "post", "/api/current");
+
+    const createRes = createMockResponse();
+    await postProviders(
+      {
+        body: {
+          name: "local",
+          baseUrl: "https://example.com",
+          authToken: "token"
+        },
+        params: {}
+      },
+      createRes
+    );
+
+    const applyRes = createMockResponse();
+    await postCurrent({ body: { id: "local" }, params: {} }, applyRes);
+
+    expect(applyRes.statusCode).toBe(400);
+    const config = JSON.parse(await fs.readFile(configPath, "utf8"));
+    expect(config.current).toBe("anthropic");
+  });
 });
